@@ -5,8 +5,9 @@
 # which automatically delete older versioned files is in the plan list
 # @copyright Mohammad Anwar Shah 
 
-def read_deb_files
+require 'fileutils'
 
+def read_deb_files
   # get filenames without extensions
   filenames = Dir.glob('*.deb').collect { |filename| filename.sub(/.deb$/, '')}
   # get deb file info into array of array
@@ -57,23 +58,26 @@ def print_info(info_hash)
 end
 
 def display_delete_list(file_list)
-  puts "\nYou selected these files for deletion."
-  file_list.each { |file| puts file }
+  if file_list.length > 0 # file list is not empty
+    puts "\nYou selected these files to delete: "
+    file_list.each { |file| puts file }
+  end
 end
 
 def mark_for_deletion(info_hash)
   marked_files = []
 
-  instruction = "Select the versions you want to REMOVE from the list. " + 
-      "\nUse comma or space to separate the versions. Example: 2, 3 or 2 3" +
-      "\nPress ENTER to skip or keep all versions"
+  instruction = #"Select the versions you want to REMOVE from the list. " + 
+      "Use comma or space to separate the versions. Example: 2, 3 or 2 3" +
+      "\nPress ENTER to skip or keep all versions" + 
+      "\nThe packages ARE NOT presented in sorted order."
   puts instruction
   puts # empty line
 
   info_hash.each do |package, info|
     versions_count = info[:version].length
     if versions_count > 1 # if more than one version exists
-      puts "Select version(s) to delete for #{package} {#{info[:arch]}} "
+      puts "Select version(s) to delete for #{package} {#{info[:arch]}} package"
       
       info[:version].each_with_index do |version, index|
         list = "#{index}: #{version}"
@@ -100,26 +104,46 @@ def mark_for_deletion(info_hash)
   marked_files # return selected list
 end
 
-def move_for_delete_files(file_list)
-  require 'fileutils'
-  to_del_dir = File.join(Dir.pwd, "to_delete")
+def move_for_delete_files(file_list, options = {})
+  
+  if options[:folder_name].nil? # if no delete folder name is provided
+    to_del_dir = File.join(Dir.pwd, 'to_delete') # use 'to_delete'
+  else
+    to_del_dir = options[:folder_name]
+  end
+
   Dir.mkdir(to_del_dir) if !Dir.exist?(to_del_dir)
   
-  file_list.each do |file| 
-    FileUtils.mv(file, to_del_dir)
-  end
+  if file_list.empty? 
+    puts "No files selected for removal"
+  else
+    file_list.each { |file| FileUtils.mv(file, to_del_dir) }
+    puts "Files moved successfully into the #{to_del_dir} folder"
+  end  
 end
 
 def main
+  # display a welcome message
+  puts '=' * 40
+  welcome_msg = "Welcome to .deb file cleaner program" + 
+    "\nThis program will look into current directory for " +
+          ".deb (debian archive) files " +
+    "\nand scan for multiple version of same package " + 
+    "\nand prompt user to select to delete some or all of those files" +
+    "\nand the user selected files will be moved into a folder" + 
+    "\nthe default name for the folder is `to_delete`"
+  puts welcome_msg
+  puts '=' * 40
+  puts #empty line
   # read deb files from directory  
   deb_file_info = read_deb_files
   
-  # print_info(deb_file_info)
   # get delete list from user
   for_delete_list = mark_for_deletion(deb_file_info)
   # display the list to the user
   display_delete_list(for_delete_list) if for_delete_list.length > 0
-  move_for_delete_files(for_delete_list)
+  puts
+  move_for_delete_files(for_delete_list, {folder_name: 'to_delete'} )
 end
 
 
