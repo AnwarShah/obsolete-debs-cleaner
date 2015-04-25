@@ -23,6 +23,12 @@ def read_deb_files
       info_hash[name] = { version: [ver], arch: arch}
     end
   end
+  
+  # sort the versions 
+  info_hash = info_hash.each do |key, value| 
+    info_hash[key][:version].sort!
+  end
+  
   info_hash
 end
 
@@ -31,8 +37,10 @@ def valid_selection?(selection_arr, vers_count)
   if selection_arr.length > vers_count 
     return false
   end
-  # selected selection
-  selection_arr.select { |x| return false if x > vers_count - 1 }      
+  # check invalid range
+  selection_arr.select do |x| 
+    return false if x > vers_count - 1 or x < 0
+  end      
 end
 
 def print_info(info_hash)
@@ -57,14 +65,15 @@ def mark_for_deletion(info_hash)
   marked_files = []
 
   instruction = "Select the versions you want to REMOVE from the list. " + 
-      "\nUse comma or space to separate the versions. Example: 2, 3 or 2 3"
+      "\nUse comma or space to separate the versions. Example: 2, 3 or 2 3" +
+      "\nPress ENTER to skip or keep all versions"
   puts instruction
   puts # empty line
 
   info_hash.each do |package, info|
     versions_count = info[:version].length
     if versions_count > 1 # if more than one version exists
-      puts "Select one(s) for Package #{package} {#{info[:arch]}} "
+      puts "Select version(s) to delete for #{package} {#{info[:arch]}} "
       
       info[:version].each_with_index do |version, index|
         list = "#{index}: #{version}"
@@ -75,7 +84,8 @@ def mark_for_deletion(info_hash)
       selected = gets.chomp.split(/ |\,/).keep_if { |v| v.length > 0 } 
       selected.map! { |e| e.to_i }
       if !valid_selection?(selected, versions_count)
-        puts "Invalid selection"
+        puts "INVALID selection! Retry"
+        redo # again prompt
       else
         # include all filenames selected for deletion
         selected.each do |idx|
@@ -90,6 +100,15 @@ def mark_for_deletion(info_hash)
   marked_files # return selected list
 end
 
+def move_for_delete_files(file_list)
+  require 'fileutils'
+  to_del_dir = File.join(Dir.pwd, "to_delete")
+  Dir.mkdir(to_del_dir) if !Dir.exist?(to_del_dir)
+  
+  file_list.each do |file| 
+    FileUtils.mv(file, to_del_dir)
+  end
+end
 
 def main
   # read deb files from directory  
@@ -100,6 +119,7 @@ def main
   for_delete_list = mark_for_deletion(deb_file_info)
   # display the list to the user
   display_delete_list(for_delete_list) if for_delete_list.length > 0
+  move_for_delete_files(for_delete_list)
 end
 
 
