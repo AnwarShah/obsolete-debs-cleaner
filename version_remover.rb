@@ -7,29 +7,46 @@
 
 require 'fileutils'
 
+TO_FOLDER = "to_delete"
+
 def read_deb_files
-  # get filenames without extensions
-  filenames = Dir.glob('*.deb').collect { |filename| filename.sub(/.deb$/, '')}
+
+  require 'find'
+
+  ignores = ['to_delete']
+  filenames = []
+
+  Find.find('.') do |path|
+    name = File.basename(path)
+    if FileTest.directory?(path)
+      if ignores.include?(name)
+        Find.prune
+      else
+        next
+      end
+    else
+      filenames << path if name =~ /.deb$/
+    end
+  end
+
   # get deb file info into array of array
-  files_info = filenames.collect { |filename| filename.split('_')}
+  files_info = filenames.collect do |filename|
+    Array(File.realpath(filename)) + File.basename(filename, '.deb').split('_')
+  end
 
   # create a hash with a defined default structure
   info_hash = Hash.new { |hash, key| hash[key] = {} }
 
-  files_info.collect do |name, ver, arch|
+  files_info.collect do |path, name, ver, arch|
     # if already a version exists, append the version to it
-    if !info_hash[name][:version].nil? 
-      info_hash[name][:version] << ver
+    if !info_hash[name][:versions]
+      info_hash[name][:versions] = [ {version: ver, path: path } ]
+      info_hash[name][:arch] = arch
     else
-      info_hash[name] = { version: [ver], arch: arch}
+      info_hash[name][:versions] += [ {version: ver, path: path } ]
     end
   end
-  
-  # sort the versions 
-  info_hash = info_hash.each do |key, value| 
-    info_hash[key][:version].sort!
-  end
-  
+
   info_hash
 end
 
@@ -75,12 +92,12 @@ def mark_for_deletion(info_hash)
   puts # empty line
 
   info_hash.each do |package, info|
-    versions_count = info[:version].length
+    versions_count = info[:versions].length
     if versions_count > 1 # if more than one version exists
       puts "Select version(s) to delete for #{package} {#{info[:arch]}} package"
       
-      info[:version].each_with_index do |version, index|
-        list = "#{index}: #{version}"
+      info[:versions].each_with_index do | info, index|
+        list = "#{index}: #{info[:version]}"
         puts list
       end
       
@@ -93,8 +110,7 @@ def mark_for_deletion(info_hash)
       else
         # include all filenames selected for deletion
         selected.each do |idx|
-          filename = package + '_' + info[:version][idx] +'_'+ 
-                      info[:arch] + '.deb'
+          filename = info[:versions][idx][:path]
           marked_files.push(filename)
         end
       end
@@ -107,7 +123,7 @@ end
 def move_for_delete_files(file_list, options = {})
   
   if options[:folder_name].nil? # if no delete folder name is provided
-    to_del_dir = File.join(Dir.pwd, 'to_delete') # use 'to_delete'
+    to_del_dir = File.join(Dir.pwd, TO_FOLDER) # use 'to_delete'
   else
     to_del_dir = options[:folder_name]
   end
@@ -143,7 +159,7 @@ def main
   # display the list to the user
   display_delete_list(for_delete_list) if for_delete_list.length > 0
   puts
-  move_for_delete_files(for_delete_list, {folder_name: 'to_delete'} )
+  move_for_delete_files(for_delete_list, { folder_name: TO_FOLDER } )
 end
 
 
