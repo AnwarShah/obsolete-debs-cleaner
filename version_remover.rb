@@ -6,12 +6,11 @@
 # @copyright Mohammad Anwar Shah 
 
 require 'fileutils'
+require 'find'
 
 TO_FOLDER = "to_delete"
 
 def read_deb_files
-
-  require 'find'
 
   ignores = ['to_delete']
   filenames = []
@@ -138,24 +137,43 @@ def move_for_delete_files(file_list, options = {})
   end  
 end
 
+def multi_versions_exists?(files_info)
+
+  files_info.each do |package, info|
+    return true if info[:versions].length > 1
+  end
+
+  false # no multiple versions found
+end
+
+
 def main
   # display a welcome message
   puts '=' * 40
-  welcome_msg = "Welcome to .deb file cleaner program" + 
-    "\nThis program will look into current directory for " +
+  welcome_msg = "Welcome to .deb file cleaner program\n" +
+    "\nThis program will scan recursively from current directory for " +
           ".deb (debian archive) files " +
-    "\nand scan for multiple version of same package " + 
-    "\nand prompt user to select to delete some or all of those files" +
-    "\nand the user selected files will be moved into a folder" + 
-    "\nthe default name for the folder is `to_delete`"
+    "\nand check whether multiple versions of a package exist. " +
+    "\nIf multiple versions are found, will prompt user to select some or all of the versions to delete" +
+    "\nThe user selected files will not be deleted immediately." +
+    "\nInstead those files will be be moved into a folder named `to_delete`"
+
   puts welcome_msg
   puts '=' * 40
   puts #empty line
-  # read deb files from directory  
+
+  # read deb files from directory
   deb_file_info = read_deb_files
-  
+
+  # Check whether multiple versions exists
+  if !multi_versions_exists?(deb_file_info)
+    puts "No packages found with multiple versions"
+    exit(0)
+  end
+
   # get delete list from user
   for_delete_list = mark_for_deletion(deb_file_info)
+
   # display the list to the user
   display_delete_list(for_delete_list) if for_delete_list.length > 0
   puts
