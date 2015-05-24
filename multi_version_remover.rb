@@ -10,6 +10,21 @@ require 'find'
 
 TO_FOLDER = "to_delete"
 
+def pretty_file_size(size_in_byte)
+  sizes = {
+      'B' => 1024,
+      'KB' => 1024 * 1024,
+      'MB' => 1024 * 1024 * 1024,
+      'GB' => 1024 * 1024 * 1024 * 1024,
+      'TB' => 1024 * 1024 * 1024 * 1024 * 1024
+  }
+  sizes.each_pair do |key, value|
+    if size_in_byte <= value
+      return "#{(size_in_byte / (value / 1024)).round(2)} #{key}"
+    end
+  end
+end
+
 def read_deb_files
 
   ignores = ['to_delete']
@@ -37,12 +52,13 @@ def read_deb_files
   info_hash = Hash.new { |hash, key| hash[key] = {} }
 
   files_info.collect do |path, name, ver, arch|
+    pretty_size = pretty_file_size File.size(path)
     # if already a version exists, append the version to it
     if !info_hash[name][:versions]
-      info_hash[name][:versions] = [ {version: ver, path: path } ]
+      info_hash[name][:versions] = [ {version: ver, path: path, size: pretty_size} ]
       info_hash[name][:arch] = arch
     else
-      info_hash[name][:versions] += [ {version: ver, path: path } ]
+      info_hash[name][:versions] += [ {version: ver, path: path, size: pretty_size} ]
     end
   end
 
@@ -96,8 +112,7 @@ def mark_for_deletion(info_hash)
       puts "Select version(s) to delete for #{package} {#{info[:arch]}} package"
       
       info[:versions].each_with_index do | info, index|
-        list = "#{index}: #{info[:version]}"
-        puts list
+        puts "[#{index}] version: #{info[:version]} size: #{info[:size]}"
       end
       
       # get input, split with comma and space and store indv. value
