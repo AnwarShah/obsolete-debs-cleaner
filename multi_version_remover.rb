@@ -20,7 +20,7 @@ def pretty_file_size(size_in_byte)
   }
   sizes.each_pair do |key, value|
     if size_in_byte <= value
-      return "#{(size_in_byte / (value / 1024)).round(2)} #{key}"
+      return "#{(size_in_byte / (value / 1024).round(2)).round(3) } #{key}"
     end
   end
 end
