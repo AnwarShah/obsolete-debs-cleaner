@@ -3,7 +3,8 @@
 # This program attempts to remove old, obsolete versions for local debian 
 # packages by prompting user for the deletion list. Another variation 
 # which automatically delete older versioned files is in the plan list
-# @copyright Mohammad Anwar Shah 
+# @copyright Mohammad Anwar Shah
+# version: 0.9.1
 
 require 'fileutils'
 require 'find'
@@ -23,6 +24,7 @@ def pretty_file_size(size_in_byte)
       return "#{(size_in_byte / (value / 1024).round(2)).round(3) } #{key}"
     end
   end
+
 end
 
 def read_deb_files
@@ -68,17 +70,23 @@ def read_deb_files
   end
 
   info_hash
+
 end
 
 def valid_selection?(selection_arr, vers_count)
+
+  # Remove same selection multiple times
+  selection_arr.uniq!
   # if more than available versions are selected
   if selection_arr.length > vers_count 
     return false
   end
+
   # check invalid range
   selection_arr.select do |x| 
     return false if x > vers_count - 1 or x < 0
-  end      
+  end
+
 end
 
 def print_info(info_hash)
@@ -108,6 +116,7 @@ def display_delete_list(file_list)
 end
 
 def mark_for_deletion(info_hash)
+
   marked_files = []
 
   instruction =
@@ -131,7 +140,6 @@ def mark_for_deletion(info_hash)
       # get input, split with comma and space and store individual. value
       selected = gets.chomp.split(/ |\,/).keep_if { |v| v.length > 0 } 
       selected.map! { |e| e.to_i }
-      selected.uniq! # Remove duplicates if exists
 
       if !valid_selection?(selected, versions_count)
         puts "INVALID selection! Retry"
@@ -144,9 +152,10 @@ def mark_for_deletion(info_hash)
         end
       end
     end
-  end # end of outer info_hash outer loop
 
+  end # end of outer info_hash outer loop
   marked_files # return selected list
+
 end
 
 def move_for_delete_files(file_list, options = {})
@@ -164,7 +173,8 @@ def move_for_delete_files(file_list, options = {})
   else
     file_list.each { |file| FileUtils.mv(file, to_del_dir) }
     puts "Files moved successfully into the #{to_del_dir} folder"
-  end  
+  end
+
 end
 
 def multi_versions_exists?(files_info)
@@ -178,8 +188,10 @@ end
 
 
 def main
+
   # display a welcome message
   puts '=' * 40
+
   welcome_msg = "Welcome to .deb file cleaner program\n" +
     "\nThis program will scan recursively from current directory for " +
           ".deb (debian archive) files " +
@@ -209,8 +221,9 @@ def main
 
   # display the list to the user
   display_delete_list(for_delete_list) if for_delete_list.length > 0
-  puts
+  puts # draw a line
   move_for_delete_files(for_delete_list, { folder_name: TO_FOLDER } )
+
 end
 
 
