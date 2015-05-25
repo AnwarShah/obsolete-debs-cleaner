@@ -52,14 +52,19 @@ def read_deb_files
   info_hash = Hash.new { |hash, key| hash[key] = {} }
 
   files_info.collect do |path, name, ver, arch|
+
     pretty_size = pretty_file_size File.size(path)
-    # if already a version exists, append the version to it
+    info_hash[name][:arch] = arch
     if !info_hash[name][:versions]
-      info_hash[name][:versions] = [ {version: ver, path: path, size: pretty_size} ]
-      info_hash[name][:arch] = arch
+      info_hash[name][:versions] = [ver]
+      info_hash[name][:paths] = [path]
+      info_hash[name][:sizes] = [pretty_size]
     else
-      info_hash[name][:versions] += [ {version: ver, path: path, size: pretty_size} ]
+      info_hash[name][:versions] += [ver]
+      info_hash[name][:paths] += [path]
+      info_hash[name][:sizes] += [pretty_size]
     end
+
   end
 
   info_hash
@@ -77,54 +82,64 @@ def valid_selection?(selection_arr, vers_count)
 end
 
 def print_info(info_hash)
-  info_hash.each do |key, value|
-    version_s = value[:version].length > 1 ? 'versions' : 'version'
-    head = "Package #{key} {#{value[:arch]}} has #{value[:version].length} #{version_s}"
+
+  info_hash.each do |package, info|
+    version_count = info[:versions].length
+    version_s = version_count > 1 ? 'versions' : 'version'
+    head = "#{package} {#{info[:arch]}} has #{version_count} #{version_s}"
     versions = ''
-    value[:version].each do |ver_no| 
-      versions += ' ' * 8 + 'version: ' + ver_no + "\n"
+    info[:versions].each_with_index do |ver_no, index|
+      versions += ' ' * 8 + "#{index+1} - " + ver_no + "\n"
     end
     puts head
     puts versions
+
   end
+
 end
 
 def display_delete_list(file_list)
+
   if file_list.length > 0 # file list is not empty
     puts "\nYou selected these files to delete: "
     file_list.each { |file| puts file }
   end
+
 end
 
 def mark_for_deletion(info_hash)
   marked_files = []
 
-  instruction = #"Select the versions you want to REMOVE from the list. " + 
+  instruction =
       "Use comma or space to separate the versions. Example: 2, 3 or 2 3" +
       "\nPress ENTER to skip or keep all versions" + 
       "\nThe packages ARE NOT presented in sorted order."
+
   puts instruction
   puts # empty line
 
   info_hash.each do |package, info|
     versions_count = info[:versions].length
+
     if versions_count > 1 # if more than one version exists
       puts "Select version(s) to delete for #{package} {#{info[:arch]}} package"
       
-      info[:versions].each_with_index do | info, index|
-        puts "[#{index}] version: #{info[:version]} size: #{info[:size]}"
+      info[:versions].each_index do |index|
+        puts "[#{index}]: #{info[:versions][index]} size: #{info[:sizes][index]}"
       end
       
-      # get input, split with comma and space and store indv. value
+      # get input, split with comma and space and store individual. value
       selected = gets.chomp.split(/ |\,/).keep_if { |v| v.length > 0 } 
       selected.map! { |e| e.to_i }
+      selected.uniq! # Remove duplicates if exists
+
       if !valid_selection?(selected, versions_count)
         puts "INVALID selection! Retry"
         redo # again prompt
       else
         # include all filenames selected for deletion
         selected.each do |idx|
-          filename = info[:versions][idx][:path]
+          filename = info[:paths][idx]
           marked_files.push(filename)
         end
       end
@@ -179,6 +194,9 @@ def main
 
   # read deb files from directory
   deb_file_info = read_deb_files
+
+  # Print info about packages
+  # print_info deb_file_info
 
   # Check whether multiple versions exists
   if !multi_versions_exists?(deb_file_info)
