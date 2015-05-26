@@ -27,6 +27,27 @@ def pretty_file_size(size_in_byte)
 
 end
 
+def correct_file_names(paths)
+
+  paths.each_index  do |i|
+    filename = File.basename(paths[i])
+
+    # check for invalid chars
+    if /[^a-zA-Z0-9\.\-\+\:\~\_]/.match(filename)
+
+      # if found, call `dpkg-name` and save the log msg
+      log = %x`dpkg-name #{paths[i]}`
+
+      # extract new file path from log msg
+      matches = /info: moved \'(.*\.deb)\' to \'(.*\.deb)\'/.match(log)
+
+      # replace with new file path
+      paths[i] = matches[2] # the third element is the new filename
+    end
+  end
+end
+
+
 def read_deb_files
 
   ignores = ['to_delete']
@@ -45,6 +66,9 @@ def read_deb_files
       filenames << path if name =~ /.deb$/
     end
   end
+
+  # We attempt to correct the .deb filename whose names contain invalid chars
+  filenames = correct_file_names filenames
 
   # get deb file info into array of array
   files_info = filenames.collect do |filename|
