@@ -32,7 +32,7 @@ def read_deb_files
   ignores = ['to_delete']
   filenames = []
 
-  Find.find('.') do |path|
+  Find.find('/media/linux+custom/linux/repo/Trusty') do |path|
     name = File.basename(path)
     if FileTest.directory?(path)
       if ignores.include?(name)
@@ -204,8 +204,24 @@ def main
   puts '=' * 40
   puts #empty line
 
+  deb_file_info = {}
+
   # read deb files from directory
-  deb_file_info = read_deb_files
+  t1 = Thread.new {
+    deb_file_info = read_deb_files
+  }
+
+  progress_bar = %w(- >)
+  print 'Scanning directory (Please wait) ' if t1.status
+  while t1.status == 'run'
+    print '.'
+    $stdout.flush
+    sleep 0.01
+  end
+
+  t1.join
+  # Add two line
+  puts "\n\n"
 
   # Print info about packages
   # print_info deb_file_info
