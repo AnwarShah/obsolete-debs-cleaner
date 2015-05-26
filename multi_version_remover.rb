@@ -9,7 +9,66 @@
 require 'fileutils'
 require 'find'
 
+require_relative 'apt-vercmp'
+
 TO_FOLDER = "to_delete"
+
+# Class for App-version sort routine
+class AptVersSorter
+
+  def initialize(info)
+    @info = info
+    @ver_arr = info[:versions]
+    @size_arr = info[:sizes]
+    @path_arr = info[:paths]
+  end
+
+  def sort_by_versions
+    quick_sort(0, @ver_arr.length-1 )
+  end
+
+  def quick_sort(p, r)
+    if p < r
+      q = partition(p, r)
+      quick_sort(p, q-1)
+      quick_sort(q+1, r)
+    end
+  end
+
+  def exchange(x, y )
+    # Exchange versions
+    temp_ver = @ver_arr[x]
+    @ver_arr[x] = @ver_arr[y]
+    @ver_arr[y] = temp_ver
+
+    # exchange paths
+    temp_path = @path_arr[x]
+    @path_arr[x] = @path_arr[y]
+    @path_arr[y] = temp_path
+
+    # exchange sizes
+    temp_path = @size_arr[x]
+    @size_arr[x] = @size_arr[y]
+    @size_arr[y] = temp_path
+
+  end
+
+  def partition(p, r )
+    x = @ver_arr[r]
+    i = p - 1
+
+    p.upto(r-1) do |j|
+      if vercmp(@ver_arr[j], x) == -1 || vercmp(@ver_arr[j], x ) == 0
+        i = i + 1
+        exchange( i , j )
+      end
+    end
+
+    exchange(i+1,r )
+    return i + 1
+  end
+
+end
 
 def pretty_file_size(size_in_byte)
   sizes = {
@@ -140,7 +199,7 @@ def display_delete_list(file_list)
 
 end
 
-def mark_for_deletion(info_hash)
+def mark_for_deletion(info_hash, sorted = false )
 
   marked_files = []
   instruction =  <<END
@@ -148,10 +207,17 @@ Select version(s) to remove from a given package.
 Type the version index to select.
 Use comma or space to separate multiple index.
 Press ENTER to skip or keep all versions.
-The packages are NOT presented in sorted order.
 END
 
+  not_sorted_msg = "The packages are NOT presented in sorted order."
+  sorted_msg = "The packages are presented in sorted order."
+
   puts instruction
+  if sorted
+    puts sorted_msg
+  else
+    puts not_sorted_msg
+  end
   puts # empty line
 
   hint = 'ENTER to skip or Type index (separate with comma or space) to remove'
@@ -216,7 +282,7 @@ def multi_versions_exists?(files_info)
 end
 
 
-def main
+def main( options = {sort: false } )
 
   # display a welcome message
   puts '=' * 40
@@ -252,6 +318,15 @@ END
   # Add two line
   puts "\n\n"
 
+  # if sorted option specified, sort
+  if options[:sort]
+
+    deb_file_info.each do | pack, info |
+      AptVersSorter.new(info).sort_by_versions
+    end
+
+  end
+
   # Print info about packages
   # print_info deb_file_info
 
@@ -261,8 +336,9 @@ END
     exit(0)
   end
 
+
   # get delete list from user
-  for_delete_list = mark_for_deletion(deb_file_info)
+  for_delete_list = mark_for_deletion(deb_file_info, options[:sort] )
 
   # display the list to the user
   display_delete_list(for_delete_list) if for_delete_list.length > 0
@@ -272,4 +348,4 @@ END
 end
 
 
-main #call main method
+main( sort: true ) #call main method
