@@ -32,7 +32,8 @@ def read_deb_files
   ignores = ['to_delete']
   filenames = []
 
-  Find.find('/media/linux+custom/linux/repo/Trusty') do |path|
+  Find.find('.') do |path|
+    # Todo Add support to specify random directory name
     name = File.basename(path)
     if FileTest.directory?(path)
       if ignores.include?(name)
@@ -211,7 +212,6 @@ def main
     deb_file_info = read_deb_files
   }
 
-  progress_bar = %w(- >)
   print 'Scanning directory (Please wait) ' if t1.status
   while t1.status == 'run'
     print '.'
