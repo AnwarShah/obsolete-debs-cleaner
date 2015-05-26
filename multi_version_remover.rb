@@ -119,25 +119,29 @@ end
 def mark_for_deletion(info_hash)
 
   marked_files = []
-
-  instruction =
-      "Use comma or space to separate the versions. Example: 2, 3 or 2 3" +
-      "\nPress ENTER to skip or keep all versions" + 
-      "\nThe packages ARE NOT presented in sorted order."
+  instruction =  <<END
+Select version(s) to remove from a given package.
+Type the version index to select.
+Use comma or space to separate multiple index.
+Press ENTER to skip or keep all versions.
+The packages are NOT presented in sorted order.
+END
 
   puts instruction
   puts # empty line
 
+  hint = 'ENTER to skip or Type index (separate with comma or space) to remove'
   info_hash.each do |package, info|
     versions_count = info[:versions].length
 
     if versions_count > 1 # if more than one version exists
-      puts "Select version(s) to delete for #{package} {#{info[:arch]}} package"
-      
+      puts "#{package} {#{info[:arch]}}"
+
       info[:versions].each_index do |index|
         puts "[#{index}]: #{info[:versions][index]} size: #{info[:sizes][index]}"
       end
-      
+      puts  "\n#{hint}"
+
       # get input, split with comma and space and store individual. value
       selected = gets.chomp.split(/ |\,/).keep_if { |v| v.length > 0 } 
       selected.map! { |e| e.to_i }
@@ -193,13 +197,14 @@ def main
   # display a welcome message
   puts '=' * 40
 
-  welcome_msg = "Welcome to .deb file cleaner program\n" +
-    "\nThis program will scan recursively from current directory for " +
-          ".deb (debian archive) files " +
-    "\nand check whether multiple versions of a package exist. " +
-    "\nIf multiple versions are found, will prompt user to select some or all of the versions to delete" +
-    "\nThe user selected files will not be deleted immediately." +
-    "\nInstead those files will be be moved into a folder named `to_delete`"
+  welcome_msg = <<END
+Welcome to .deb file cleaner program
+This program will scan recursively the current directory for .deb files and
+check for multiple versions of a package.
+If multiple versions are found, will prompt user to select some or all of the versions to delete
+The user selected files will NOT be deleted immediately.
+Instead those files will be be moved into a folder named `to_delete` in current directory
+END
 
   puts welcome_msg
   puts '=' * 40
