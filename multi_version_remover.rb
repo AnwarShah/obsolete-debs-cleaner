@@ -107,30 +107,8 @@ def pretty_file_size(size_in_byte)
 
 end
 
-def correct_file_names(paths)
-
-  paths.each_index  do |i|
-    filename = File.basename(paths[i])
-
-    # check for invalid chars
-    if /[^a-zA-Z0-9\.\-\+\:\~\_]/.match(filename)
-
-      # if found, call `dpkg-name` and save the log msg
-      log = %x`dpkg-name #{paths[i]}`
-
-      # extract new file path from log msg
-      matches = /info: moved \'(.*\.deb)\' to \'(.*\.deb)\'/.match(log)
-
-      # replace with new file path
-      paths[i] = matches[2] # the third element is the new filename
-    end
-  end
-end
-
-
-def read_deb_files
-
-  ignores = ['to_delete']
+def get_deb_files_name
+  ignores = [TO_FOLDER]
   filenames = []
 
   Find.find('.') do |path|
@@ -146,14 +124,32 @@ def read_deb_files
       filenames << path if name =~ /.deb$/
     end
   end
+  filenames
+end
 
-  # We attempt to correct the .deb filename whose names contain invalid chars
-  filenames = correct_file_names filenames
+def read_package_info(filenames)
+  filenames.collect do |filename|
+    path = File.realpath(filename)
+    filename = File.basename(filename)
+    # Use system command `dpkg-deb to get Package name and Version`
+    ret_value = `dpkg-deb -f #{path} Package Version Architecture`
+    # split the string with delimiter space and : to get 6 valued array
+    # ['Package:', 'name_val', 'Version:', 'ver_val', 'Architecture', 'arch_val']
+    ret_value = ret_value.split(/ |\n/)
+    package_name = ret_value[1] # for package name
+    version = ret_value[3]      # for version
+    architecture = ret_value[5] # fro architecture
+    [ path, package_name, version, architecture ] # return a 4 element arr
+  end
+
+end
+
+def read_deb_files
+
+  filenames = get_deb_files_name
 
   # get deb file info into array of array
-  files_info = filenames.collect do |filename|
-    Array(File.realpath(filename)) + File.basename(filename, '.deb').split('_')
-  end
+  files_info = read_package_info(filenames)
 
   # create a hash with a defined default structure
   info_hash = Hash.new { |hash, key| hash[key] = {} }
@@ -287,8 +283,15 @@ def move_for_delete_files(file_list, options = {})
   if file_list.empty? 
     puts 'No files selected for removal'
   else
-    file_list.each { |file| FileUtils.mv(file, to_del_dir) }
-    puts "Files moved successfully into the folder named \'#{to_del_dir}\'"
+    move_count = 0 # counter
+    file_list.each { |file|
+      FileUtils.mv(file, to_del_dir)
+      puts "#{File.basename(file)} moved to \'#{File.realpath(to_del_dir)}\'"
+      move_count += 1
+    }
+    files_word = move_count > 1 ? 'Files' : 'File'
+    puts # line break
+    puts "#{move_count} #{files_word} moved successfully into the folder named \'#{to_del_dir}\'"
   end
 
 end
@@ -364,7 +367,8 @@ END
   for_delete_list = mark_for_deletion(deb_file_info, options[:sort] )
 
   # display the list to the user
-  display_delete_list(for_delete_list) if for_delete_list.length > 0
+  # display_delete_list(for_delete_list) if for_delete_list.length > 0
+
   puts # draw a line
   move_for_delete_files(for_delete_list, { folder_name: TO_FOLDER } )
 
