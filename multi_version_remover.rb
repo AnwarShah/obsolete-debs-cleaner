@@ -332,10 +332,10 @@ END
   }
 
   print 'Scanning directory (Please wait) ' if t1.status
-  while t1.status == 'run'
+  while t1.status
     print '.'
     $stdout.flush
-    sleep 0.01
+    sleep 0.1
   end
 
   t1.join
