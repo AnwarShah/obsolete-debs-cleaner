@@ -9,5 +9,20 @@ Download the multi_version_remover.rb script and place it into the root director
 
 Then run the script in the terminal by calling it with `multi_version_remover.rb`
 
+
+    Usage: multi_version_remover.rb [Options]...[FOLDER]
+    Scan for .deb files recursively from current directory and
+    prompt user to remove multiple versions
+    
+    All options are optional.
+    If not specified, it will run with -s and `to_folder` folder name
+    
+    Options:
+      -h    This help text
+      -s    Present multiple versions in sorted order
+    
+    FOLDER is the user specified folder name. Default name is `to_delete`
+
 # TO-DO
-Incorporate respective repository information along with file versions
+- Incorporate respective repository information along with file versions
+- Add option to skip versions with a minimum size
