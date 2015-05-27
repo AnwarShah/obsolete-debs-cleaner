@@ -9,9 +9,8 @@
 require 'fileutils'
 require 'find'
 
-require_relative 'apt-vercmp'
 
-TO_FOLDER = "to_delete"
+TO_FOLDER = 'to_delete'
 
 # Class for App-version sort routine
 class AptVersSorter
@@ -58,14 +57,36 @@ class AptVersSorter
     i = p - 1
 
     p.upto(r-1) do |j|
-      if vercmp(@ver_arr[j], x) == -1 || vercmp(@ver_arr[j], x ) == 0
+      if version_cmp(@ver_arr[j], x) == -1 || version_cmp(@ver_arr[j], x ) == 0
         i = i + 1
         exchange( i , j )
       end
     end
 
     exchange(i+1,r )
-    return i + 1
+    i + 1
+  end
+
+  # version comparison method
+  def version_cmp(ver1, ver2)
+    # return -1 if ver1 is less than ver2
+    # 1 if ver1 is greather than ver2
+    # 0 if ver1 and ver2 is equal
+
+    ret_code = %x`dpkg --compare-versions #{ver1} gt #{ver2} && echo 1`
+
+    if ret_code.empty?
+      ret_code = %x`dpkg --compare-versions #{ver1} lt #{ver2} && echo -1`
+    else
+      ret_code = %x`dpkg --compare-versions #{ver1} eq #{ver2} && echo 0`
+    end
+
+    ret_code = ret_code.chomp
+    return 1 if ret_code == '1'
+    return -1 if ret_code == '-1'
+    return 0 if ret_code == '0'
+
+    return ret_code
   end
 
 end
@@ -141,7 +162,7 @@ def read_deb_files
 
     pretty_size = pretty_file_size File.size(path)
     info_hash[name][:arch] = arch
-    if !info_hash[name][:versions]
+    unless info_hash[name][:versions]
       info_hash[name][:versions] = [ver]
       info_hash[name][:paths] = [path]
       info_hash[name][:sizes] = [pretty_size]
@@ -209,8 +230,8 @@ Use comma or space to separate multiple index.
 Press ENTER to skip or keep all versions.
 END
 
-  not_sorted_msg = "The packages are NOT presented in sorted order."
-  sorted_msg = "The packages are presented in sorted order."
+  not_sorted_msg = 'The packages are NOT presented in sorted order.'
+  sorted_msg = 'The packages are presented in sorted order.'
 
   puts instruction
   if sorted
@@ -236,8 +257,8 @@ END
       selected = gets.chomp.split(/ |\,/).keep_if { |v| v.length > 0 } 
       selected.map! { |e| e.to_i }
 
-      if !valid_selection?(selected, versions_count)
-        puts "INVALID selection! Retry"
+      unless valid_selection?(selected, versions_count)
+        puts 'INVALID selection! Retry'
         redo # again prompt
       else
         # include all filenames selected for deletion
@@ -264,7 +285,7 @@ def move_for_delete_files(file_list, options = {})
   Dir.mkdir(to_del_dir) if !Dir.exist?(to_del_dir)
   
   if file_list.empty? 
-    puts "No files selected for removal"
+    puts 'No files selected for removal'
   else
     file_list.each { |file| FileUtils.mv(file, to_del_dir) }
     puts "Files moved successfully into the #{to_del_dir} folder"
@@ -321,8 +342,10 @@ END
   # if sorted option specified, sort
   if options[:sort]
 
-    deb_file_info.each do | pack, info |
-      AptVersSorter.new(info).sort_by_versions
+    deb_file_info.collect do | pack, info |
+      if info[:versions].length > 1
+        AptVersSorter.new(info).sort_by_versions
+      end
     end
 
   end
@@ -332,7 +355,7 @@ END
 
   # Check whether multiple versions exists
   if !multi_versions_exists?(deb_file_info)
-    puts "No packages found with multiple versions"
+    puts 'No packages found with multiple versions'
     exit(0)
   end
 
@@ -348,4 +371,4 @@ END
 end
 
 
-main( sort: true ) #call main method
+main( {sort: true} ) #call main method
