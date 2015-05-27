@@ -230,8 +230,8 @@ Use comma or space to separate multiple index.
 Press ENTER to skip or keep all versions.
 END
 
-  not_sorted_msg = 'The packages are NOT presented in sorted order.'
-  sorted_msg = 'The packages are presented in sorted order.'
+  not_sorted_msg = 'The packages ARE NOT in sorted order.'
+  sorted_msg = 'The packages are presented in SORTED order.'
 
   puts instruction
   if sorted
@@ -288,7 +288,7 @@ def move_for_delete_files(file_list, options = {})
     puts 'No files selected for removal'
   else
     file_list.each { |file| FileUtils.mv(file, to_del_dir) }
-    puts "Files moved successfully into the #{to_del_dir} folder"
+    puts "Files moved successfully into the folder named \'#{to_del_dir}\'"
   end
 
 end
@@ -370,5 +370,47 @@ END
 
 end
 
+help_msg = <<END
+Usage: multi_version_remover.rb [Options]...[FOLDER]
+Scan for .deb files recursively from current directory and
+prompt user to remove multiple versions
 
-main( {sort: true} ) #call main method
+All options are optional.
+If not specified, it will run with -s and `to_folder` folder name
+
+Options:
+  -h    This help text
+  -s    Present multiple versions in sorted order
+
+FOLDER is the user specified folder name. Default name is `to_delete`
+END
+
+
+until ARGV.empty?
+  option = ARGV.shift
+  case option
+    when '-h'
+      help_flag = true
+    when '-s'
+      sort_flag = true
+    else
+      custom_folder = option
+  end
+end
+
+
+if help_flag
+  puts help_msg
+  exit(0)
+end
+
+if custom_folder
+  TO_FOLDER = custom_folder
+end
+
+if sort_flag
+  main( { sort: true } ) #call main method
+else
+  main()
+end
+
