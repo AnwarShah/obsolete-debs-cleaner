@@ -112,7 +112,6 @@ def get_deb_files_name
   filenames = []
 
   Find.find('.') do |path|
-    # Todo Add support to specify random directory name
     name = File.basename(path)
     if FileTest.directory?(path)
       if ignores.include?(name)
@@ -130,16 +129,20 @@ end
 def read_package_info(filenames)
   filenames.collect do |filename|
     path = File.realpath(filename)
-    filename = File.basename(filename)
+
     # Use system command `dpkg-deb to get Package name and Version`
     ret_value = `dpkg-deb -f #{path} Package Version Architecture`
+
     # split the string with delimiter space and : to get 6 valued array
     # ['Package:', 'name_val', 'Version:', 'ver_val', 'Architecture', 'arch_val']
     ret_value = ret_value.split(/ |\n/)
-    package_name = ret_value[1] # for package name
-    version = ret_value[3]      # for version
-    architecture = ret_value[5] # fro architecture
-    [ path, package_name, version, architecture ] # return a 4 element arr
+
+    # get them into a temp hash
+    h = {}
+    ret_value.each_slice(2) { |a| h.store( a[0], a[1] ) }
+
+    # return a 4 element array by extracting info from temp hash
+    [ path, h['Package:'], h['Version:'], h['Architecture:'] ]
   end
 
 end
@@ -315,9 +318,10 @@ def main( options = {sort: false } )
 Welcome to .deb file cleaner program
 This program will scan recursively the current directory for .deb files and
 check for multiple versions of a package.
-If multiple versions are found, will prompt user to select some or all of the versions to delete
+If found, user will be prompted to select some or all of the versions to delete.
 The user selected files will NOT be deleted immediately.
-Instead those files will be be moved into a folder named `to_delete` in current directory
+Instead those files will be be moved into a folder.
+Default name of destination folder is `to_delete` in current directory
 END
 
   puts welcome_msg
@@ -385,6 +389,7 @@ If not specified, it will run with -s and `to_folder` folder name
 Options:
   -h    This help text
   -s    Present multiple versions in sorted order
+  -S    Do not present in sorted order
 
 FOLDER is the user specified folder name. Default name is `to_delete`
 END
@@ -397,6 +402,8 @@ until ARGV.empty?
       help_flag = true
     when '-s'
       sort_flag = true
+    when '-S'
+      sort_flag = false
     else
       custom_folder = option
   end
@@ -412,9 +419,9 @@ if custom_folder
   TO_FOLDER = custom_folder
 end
 
-if sort_flag
-  main( { sort: true } ) #call main method
+if sort_flag.nil?
+  main( { sort: true } ) # default is sort: true
 else
-  main()
+  main( { sort: sort_flag } ) # otherwise user specified
 end
 
