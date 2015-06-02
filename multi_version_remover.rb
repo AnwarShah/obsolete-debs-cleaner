@@ -8,7 +8,7 @@
 
 require 'fileutils'
 require 'find'
-
+require 'debian'
 
 TO_FOLDER = 'to_delete'
 
@@ -69,24 +69,24 @@ class AptVersSorter
 
   # version comparison method
   def version_cmp(ver1, ver2)
-    # return -1 if ver1 is less than ver2
-    # 1 if ver1 is greather than ver2
-    # 0 if ver1 and ver2 is equal
+    # Compares two versions ver1 and ver2
+    # if ver1 is greater than ver2, return 1
+    # if less, return -1
+    # if equal , return 0
+    # else return nil
 
-    ret_code = %x`dpkg --compare-versions #{ver1} gt #{ver2} && echo 1`
+    if Debian::Version.cmp_version(ver1, '>', ver2 )
+      return 1
 
-    if ret_code.empty?
-      ret_code = %x`dpkg --compare-versions #{ver1} lt #{ver2} && echo -1`
+    elsif Debian::Version.cmp_version(ver1, '<', ver2 )
+      return -1
+
+    elsif Debian::Version.cmp_version(ver1, '=', ver2 )
+      return 0
+
     else
-      ret_code = %x`dpkg --compare-versions #{ver1} eq #{ver2} && echo 0`
+      return nil
     end
-
-    ret_code = ret_code.chomp
-    return 1 if ret_code == '1'
-    return -1 if ret_code == '-1'
-    return 0 if ret_code == '0'
-
-    return ret_code
   end
 
 end
