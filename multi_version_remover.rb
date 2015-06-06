@@ -10,6 +10,9 @@ require 'fileutils'
 require 'find'
 require 'debian'
 
+require_relative 'debreader'
+
+
 TO_FOLDER = 'to_delete'
 
 # Class for App-version sort routine
@@ -108,41 +111,25 @@ def pretty_file_size(size_in_byte)
 end
 
 def get_deb_files_name
-  ignores = [TO_FOLDER]
   filenames = []
 
-  Find.find('.') do |path|
-    name = File.basename(path)
-    if FileTest.directory?(path)
-      if ignores.include?(name)
-        Find.prune
-      else
-        next
-      end
-    else
-      filenames << path if name =~ /.deb$/
-    end
-  end
+  filenames = (Dir['**/*.deb']). # recursively get .deb filenames
+      drop_while { |x| x.include?(TO_FOLDER+'/')} # discard files in TO_FOLDER folder
   filenames
 end
 
+# Get the information from package files
 def read_package_info(filenames)
+
   filenames.collect do |filename|
     path = File.realpath(filename)
 
-    # Use system command `dpkg-deb to get Package name and Version`
-    ret_value = `dpkg-deb -f #{path} Package Version Architecture`
+    pkg = DebReader::Package.new(path)
+    package_name = pkg['package']
+    version = pkg['version']
+    architecture = pkg['architecture']
 
-    # split the string with delimiter space and : to get 6 valued array
-    # ['Package:', 'name_val', 'Version:', 'ver_val', 'Architecture', 'arch_val']
-    ret_value = ret_value.split(/ |\n/)
-
-    # get them into a temp hash
-    h = {}
-    ret_value.each_slice(2) { |a| h.store( a[0], a[1] ) }
-
-    # return a 4 element array by extracting info from temp hash
-    [ path, h['Package:'], h['Version:'], h['Architecture:'] ]
+    [ path, package_name, version, architecture ]
   end
 
 end
@@ -395,33 +382,38 @@ FOLDER is the user specified folder name. Default name is `to_delete`
 END
 
 
-until ARGV.empty?
-  option = ARGV.shift
-  case option
-    when '-h'
-      help_flag = true
-    when '-s'
-      sort_flag = true
-    when '-S'
-      sort_flag = false
+if $0 == __FILE__
+
+
+    until ARGV.empty?
+      option = ARGV.shift
+      case option
+        when '-h'
+          help_flag = true
+        when '-s'
+          sort_flag = true
+        when '-S'
+          sort_flag = false
+        else
+          custom_folder = option
+      end
+    end
+
+
+    if help_flag
+      puts help_msg
+      exit(0)
+    end
+
+    if custom_folder
+      TO_FOLDER = custom_folder
+    end
+
+    if sort_flag.nil?
+      main( { sort: true } ) # default is sort: true
     else
-      custom_folder = option
-  end
+      main( { sort: sort_flag } ) # otherwise user specified
+    end
 end
 
-
-if help_flag
-  puts help_msg
-  exit(0)
-end
-
-if custom_folder
-  TO_FOLDER = custom_folder
-end
-
-if sort_flag.nil?
-  main( { sort: true } ) # default is sort: true
-else
-  main( { sort: sort_flag } ) # otherwise user specified
-end
-
+__END__
