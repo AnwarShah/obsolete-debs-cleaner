@@ -1,5 +1,5 @@
 require 'benchmark'
-require_relative 'debreader_swig'
+require_relative 'libs/debreader_swig'
 
 class MultiVersionCleaner
   attr_reader :info
