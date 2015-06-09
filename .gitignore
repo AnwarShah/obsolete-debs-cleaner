@@ -1,4 +1,6 @@
 *.deb
 .idea/*
 rubytest.rb
-
+to_delete/*
+testdata/*
+debs/*
