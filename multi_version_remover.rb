@@ -10,7 +10,7 @@ require 'fileutils'
 require 'find'
 require 'debian'
 
-require_relative 'debreader'
+require_relative 'debreader-libarchive'
 
 
 TO_FOLDER = 'to_delete'
