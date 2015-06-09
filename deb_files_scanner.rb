@@ -50,11 +50,13 @@ private
   end
 end
 
-# -------------------------------------Test---------------------------
+if $0 == __FILE__
+  a = DebFilesScanner.new('.','testdata')
 
-a = DebFilesScanner.new('debs','to_delete')
+  # nautiluses =  []
+  # a.each { |pkg| nautiluses << pkg if pkg['Package'] == 'nautilus' }
 
-nautiluses =  []
-a.each { |pkg| nautiluses << pkg if pkg['Package'] == 'nautilus' }
-
-p nautiluses
+  a.each do |pkg|
+    p pkg.file_path
+  end
+end

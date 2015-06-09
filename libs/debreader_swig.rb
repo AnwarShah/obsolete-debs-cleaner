@@ -8,7 +8,7 @@ module DebReaderSwig
 
     # Class for reading control or metainformation
     # of a single debian package file
-    attr_reader :control_file_contents, :fields
+    attr_reader :control_file_contents, :fields, :file_path
 
     def initialize(file_path)
       @file_path = file_path
