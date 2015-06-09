@@ -1,7 +1,7 @@
 require 'benchmark'
 require_relative 'libs/debreader_swig'
 
-class MultiVersionCleaner
+class DebFilesScanner
   attr_reader :info
 
   # path is the path of the folder containing
@@ -10,14 +10,20 @@ class MultiVersionCleaner
     @debs_dir = debs_dir
     @dest_dir = dest_folder # the folder where .debs will be moved
     @info = []  # array to hold all control files' content
+
     get_file_list
     extract_pkg_info
+    @info # return the info Array
+  end
+
+  # methods for convenience of getting @info size
+  def size
+    @info.size
   end
 
 private
   # Get the list of the deb files
   # recursively from $debs_dir into an array
-
   def get_file_list
     Dir.chdir @debs_dir
     @filenames = (Dir['**/*.deb']). # recursively get .deb filenames
@@ -32,11 +38,3 @@ private
   end
 end
 
-# -------------------------------------Test---------------------------
-
-Benchmark.bm { |bm|
-
-  bm.report {
-    MultiVersionCleaner.new('/home/learner/shortcuts/trusty/debs/L', 'to_delete')
-  }
-}
