@@ -54,4 +54,7 @@ end
 
 a = DebFilesScanner.new('debs','to_delete')
 
-puts a.find { |x| puts x['Version'] if x['Package'] == 'nautilus'}
+nautiluses =  []
+a.each { |pkg| nautiluses << pkg if pkg['Package'] == 'nautilus' }
+
+p nautiluses

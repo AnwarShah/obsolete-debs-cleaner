@@ -1,8 +1,11 @@
 require 'libarchive_rs'
+require 'debian'
 
 module DebReaderSwig
 
   class Package
+    include Comparable
+
     # Class for reading control or metainformation
     # of a single debian package file
     attr_reader :control_file_contents, :fields
@@ -27,6 +30,30 @@ module DebReaderSwig
     # get package metadata as a hash
     def info_hash
       @fields
+    end
+
+    # Implemeting method for comparing two package
+    def <=>(otherObj)
+      ver1 = self['Version']
+      ver2 = otherObj['Version']
+
+      if Debian::Version.cmp_version(ver1, '>', ver2 )
+        return 1
+
+      elsif Debian::Version.cmp_version(ver1, '<', ver2 )
+        return -1
+
+      elsif Debian::Version.cmp_version(ver1, '=', ver2 )
+        return 0
+
+      else
+        return nil
+      end
+    end
+
+    # Overriding to_s for better view
+    def to_s
+      "#{self['Package']} #{self['Version']} #{self['Architecture']}"
     end
 
     private
