@@ -2,6 +2,7 @@ require 'benchmark'
 require_relative 'libs/debreader_swig'
 
 class DebFilesScanner
+  include Enumerable
   attr_reader :info
 
   # path is the path of the folder containing
@@ -21,6 +22,17 @@ class DebFilesScanner
     @info.size
   end
 
+  # implemeting each for making it collection
+  def each &block
+    @info.each do |pkg|
+      if block_given?
+        block.call pkg
+      else
+        yield pkg
+      end
+    end
+  end
+
 private
   # Get the list of the deb files
   # recursively from $debs_dir into an array
@@ -38,3 +50,8 @@ private
   end
 end
 
+# -------------------------------------Test---------------------------
+
+a = DebFilesScanner.new('debs','to_delete')
+
+puts a.find { |x| puts x['Version'] if x['Package'] == 'nautilus'}
