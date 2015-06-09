@@ -10,14 +10,13 @@ require 'fileutils'
 require 'find'
 require 'debian'
 
-require_relative 'debreader-libarchive'
+require_relative 'libs/debreader_swig'
 
 
 TO_FOLDER = 'to_delete'
 
 # Class for App-version sort routine
 class AptVersSorter
-
   def initialize(info)
     @info = info
     @ver_arr = info[:versions]
@@ -120,18 +119,14 @@ end
 
 # Get the information from package files
 def read_package_info(filenames)
-
   filenames.collect do |filename|
     path = File.realpath(filename)
 
-    pkg = DebReader::Package.new(path)
-    package_name = pkg['package']
-    version = pkg['version']
-    architecture = pkg['architecture']
+    pkg = DebReaderSwig::Package.new(path)
 
-    [ path, package_name, version, architecture ]
+    # return a 4 element array by extracting info from temp hash
+    [ path, pkg['Package'], pkg['Version'], pkg['Architecture'] ]
   end
-
 end
 
 def read_deb_files
@@ -417,3 +412,14 @@ if $0 == __FILE__
 end
 
 __END__
+
+# Todo:1) Add support for presenting package list with -
+#         1) most versions
+#         2) greatest size
+#     2) Add support for deleting permanently or temporarily
+#         1) with gvfs-trash
+#     3) Presenting list with seperate epoch and version
+#     4) Ability to reselect an skipped package
+#     5) Skip remaining packages
+#     6) Search for a string in versions
+#     7) Search for a package
