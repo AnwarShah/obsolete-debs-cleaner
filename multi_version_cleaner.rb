@@ -1,11 +1,15 @@
+require 'benchmark'
+require_relative 'debreader_swig'
+
 class MultiVersionCleaner
+  attr_reader :info
 
   # path is the path of the folder containing
   # .deb files
-
   def initialize(debs_dir, dest_folder='.')
     @debs_dir = debs_dir
     @dest_dir = dest_folder # the folder where .debs will be moved
+    @info = []  # array to hold all control files' content
     get_file_list
     extract_pkg_info
   end
@@ -21,6 +25,18 @@ private
   end
 
   def extract_pkg_info
-
+    @filenames.collect do |file|
+      pkg = DebReaderSwig::Package.new(file)
+      @info.push pkg
+    end
   end
 end
+
+# -------------------------------------Test---------------------------
+
+Benchmark.bm { |bm|
+
+  bm.report {
+    MultiVersionCleaner.new('/home/learner/shortcuts/trusty/debs/L', 'to_delete')
+  }
+}

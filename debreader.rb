@@ -14,7 +14,7 @@ module DebReader
     attr_reader :control_file_contents, :fields
 
     def initialize(path)
-      @path = path
+      @file_path = path
       @fields = {}
       extract_pkg_info
       parse_control_file
@@ -39,7 +39,7 @@ module DebReader
 
     def extract_pkg_info
 
-      Archive.read_open_filename(@path) do |ar|
+      Archive.read_open_filename(@file_path) do |ar|
         while entry = ar.next_header do
           name = entry.pathname
           data = ar.read_data
@@ -61,7 +61,7 @@ module DebReader
     def parse_control_file
       @control_file_contents.scan(/^([\w-]+?): (.*?)\n(?! )/m).each do |entry|
         field, value = entry
-        @fields[field.gsub("-", "_").downcase] = value
+        @fields[field] = value
       end
       @fields["installed_size"] = @fields["installed_size"].to_i * 1024 unless @fields["installed_size"].nil?
     end
