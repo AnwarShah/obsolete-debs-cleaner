@@ -1,30 +1,27 @@
-require 'benchmark'
+require_relative 'libs/deb_helpers.rb'
 require_relative 'libs/debreader_swig'
 
 class DebFilesScanner
-  include Enumerable
-  attr_reader :info
+  include DebHelpers
+  include Enumerable, Comparable
 
-  # path is the path of the folder containing
-  # .deb files
-  def initialize(debs_dir, dest_folder='.')
+  attr_reader :debs_info
+  attr_accessor :debs_dir, :exclude_dir
+
+  def initialize(debs_dir, exclude_dir='to_delete')
     @debs_dir = debs_dir
-    @dest_dir = dest_folder # the folder where .debs will be moved
-    @info = []  # array to hold all control files' content
-
-    get_file_list
-    extract_pkg_info
-    @info # return the info Array
+    @exclude_dir = 'to_delete' unless exclude_dir.empty?
+    @debs_info = read_debs # get individual deb data
   end
 
   # methods for convenience of getting @info size
   def size
-    @info.size
+    @debs_info.size
   end
 
   # implemeting each for making it collection
-  def each &block
-    @info.each do |pkg|
+  def each(&block)
+    @debs_info.each do |pkg|
       if block_given?
         block.call pkg
       else
@@ -33,30 +30,35 @@ class DebFilesScanner
     end
   end
 
-private
-  # Get the list of the deb files
-  # recursively from $debs_dir into an array
-  def get_file_list
-    Dir.chdir @debs_dir
-    @filenames = (Dir['**/*.deb']). # recursively get .deb filenames
-    drop_while { |x| x.include?(@dest_dir+'/')} # discard files in @dest_dir
-  end
-
-  def extract_pkg_info
-    @filenames.collect do |file|
-      pkg = DebReaderSwig::Package.new(file)
-      @info.push pkg
+  # methods from comparable module
+  # equality will be based on packages name, version and arch string
+  # Equal if and only both objects have same packages file, for same version
+  # and same arch
+  def <=>other
+    if size < other.size
+      return -1
+    elsif size > other.size
+      return 1
     end
+    # otherwise
+    debs_str = @debs_info.collect { |x| x.to_s }.sort
+    other_debs_str = other.collect { |x| x.to_s }.sort
+    ret_value = 0
+    (debs_str).zip(other_debs_str).each do |pkg_str_x, pkg_str_y|
+      ret_value = pkg_str_x <=> pkg_str_y
+      break if ret_value != 0
+    end
+    if [1, 0, -1].include?(ret_value)
+      return ret_value
+    end
+
+    nil # means not comparable
   end
-end
 
-if $0 == __FILE__
-  a = DebFilesScanner.new('.','testdata')
-
-  # nautiluses =  []
-  # a.each { |pkg| nautiluses << pkg if pkg['Package'] == 'nautilus' }
-
-  a.each do |pkg|
-    p pkg.file_path
+private # private methods
+  def read_debs
+    filenames = get_file_list(@debs_dir, @exclude_dir)
+    extract_deb_info(filenames)
   end
+
 end
