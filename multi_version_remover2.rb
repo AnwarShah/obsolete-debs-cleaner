@@ -1,3 +1,4 @@
+require 'fileutils'
 require_relative 'libs/deb_files_scanner'
 
 class UserChoice
@@ -77,13 +78,14 @@ end
 ################################################################################
 
 class MultiVersionRemover
-  attr_reader :scan_dir, :excluded_dir, :debs_info, :pkgs_info
+  attr_reader :scan_dir, :to_delete_dir, :debs_info, :pkgs_info
 
-  def initialize(scan_dir = '', exclude_folder = '')
-    @excluded_dir = exclude_folder if not exclude_folder.empty?
+  def initialize(scan_dir = '', exclude_folder = 'to_delete')
+    @to_delete_dir = exclude_folder
+
     @scan_dir = '.' if scan_dir.empty?
 
-    @debs_info = get_debs_info(@scan_dir, @excluded_dir)
+    @debs_info = get_debs_info(@scan_dir, @to_delete_dir)
     @pkgs_info = get_pkgs_info(@debs_info)
     drop_singles!(@pkgs_info) # drop packages with only 1 version
     multiversions_count = @pkgs_info.length
@@ -97,13 +99,12 @@ class MultiVersionRemover
     end
   end
 
+private
+
   def process_multidebs
     selections = get_user_deletion_list(@pkgs_info)
     delete_selected_versions(@pkgs_info, selections)
   end
-
-
-private
 
   def get_debs_info(scan_dir, exclude_dir)
     DebFilesScanner.new(scan_dir, exclude_dir)
@@ -158,8 +159,8 @@ private
 
       val.each_index do |i|
         print "#{i+1}: "
-        val[i].each { |pkg|
-          puts "#{pkg.version} #{pkg.arch}"
+        val[i].each { |it|
+          puts "#{it.version} #{it.arch}"
         }
       end
       all_selections.push get_selection_from_user(options_arr)
@@ -189,7 +190,13 @@ private
     show_filelist(files_to_delete)
 
     if has_consent?
-      puts "Files are deleted"
+      delete_count = 0
+      files_to_delete.each do |file|
+        FileUtils.mv(file, @to_delete_dir)
+        puts "#{file} -> #{@to_delete_dir}"
+        delete_count += 1
+      end
+      puts "#{delete_count} Files are deleted"
     else
       puts "Man! have some courage!"
     end
@@ -228,17 +235,9 @@ private
   end
 end
 
-################ TEST TEST TEST TEST ##############
-ab = MultiVersionRemover.new('', 'to_delete')
+if $0 == __FILE__
+  MultiVersionRemover.new('', 'to_remove')
+end
 
-pkgs_info = ab.pkgs_info
 
-# pkgs_info.each do |pkg, info_arr|
-#   print "Package: #{pkg}: "
-#   puts
-#   info_arr.each_with_index  do |inf, index|
-#     puts "#{index}: #{inf}"
-#
-#   end
-# end
 
