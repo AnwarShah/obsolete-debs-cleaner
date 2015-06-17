@@ -1,4 +1,22 @@
+require 'debian'
+
 module DebHelpers
+
+  def compare_version(ver1, ver2)
+    if Debian::Version.cmp_version(ver1, '>', ver2)
+      return 1
+
+    elsif Debian::Version.cmp_version(ver1, '<', ver2)
+      return -1
+
+    elsif Debian::Version.cmp_version(ver1, '=', ver2)
+      return 0
+
+    else
+      return nil
+    end
+end
+
   def extract_deb_info(filenames)
     info = [] # array to hold all control files' content
     filenames.collect do |file|

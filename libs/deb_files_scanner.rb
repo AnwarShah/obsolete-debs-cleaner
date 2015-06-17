@@ -1,5 +1,5 @@
-require_relative 'libs/deb_helpers.rb'
-require_relative 'libs/debreader_swig'
+require_relative 'deb_helpers.rb'
+require_relative 'debreader_swig'
 
 class DebFilesScanner
   include DebHelpers

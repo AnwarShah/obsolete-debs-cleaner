@@ -201,6 +201,12 @@ def display_delete_list(file_list)
 
 end
 
+def get_user_selection
+  selected = gets.chomp.split(/ |\,/).keep_if { |v| v.length > 0 }
+  selected.map! { |e| e.to_i }
+  selected
+end
+
 def mark_for_deletion(info_hash, sorted = false )
 
   marked_files = []
@@ -235,8 +241,7 @@ END
       puts  "\n#{hint}"
 
       # get input, split with comma and space and store individual. value
-      selected = gets.chomp.split(/ |\,/).keep_if { |v| v.length > 0 } 
-      selected.map! { |e| e.to_i }
+      selected = get_user_selection
 
       unless valid_selection?(selected, versions_count)
         puts 'INVALID selection! Retry'

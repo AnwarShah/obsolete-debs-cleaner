@@ -1,9 +1,11 @@
+require_relative 'deb_helpers.rb'
 require 'libarchive_rs'
 require 'debian'
 
 module DebReaderSwig
 
   class Package
+    include DebHelpers
     include Comparable
 
     # Class for reading control or metainformation
@@ -37,18 +39,7 @@ module DebReaderSwig
       ver1 = self['Version']
       ver2 = otherObj['Version']
 
-      if Debian::Version.cmp_version(ver1, '>', ver2 )
-        return 1
-
-      elsif Debian::Version.cmp_version(ver1, '<', ver2 )
-        return -1
-
-      elsif Debian::Version.cmp_version(ver1, '=', ver2 )
-        return 0
-
-      else
-        return nil
-      end
+      compare_version(ver1, ver2)
     end
 
     # Overriding to_s for better view
@@ -56,8 +47,7 @@ module DebReaderSwig
       "#{self['Package']} #{self['Version']} #{self['Architecture']}"
     end
 
-    private
-
+private
     def read_control_file(filename)
 
       Archive.read_open_filename(filename) do |archive|
