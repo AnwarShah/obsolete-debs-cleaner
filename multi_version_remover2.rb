@@ -1,3 +1,5 @@
+#!/usr/bin/env ruby
+
 require 'fileutils'
 require_relative 'libs/deb_files_scanner'
 
@@ -103,7 +105,7 @@ private
 
   def process_multidebs
     selections = get_user_deletion_list(@pkgs_info)
-    delete_selected_versions(@pkgs_info, selections) if selections.length > 0
+    delete_selected_versions(@pkgs_info, selections)
   end
 
   def get_debs_info(scan_dir, exclude_dir)
@@ -179,7 +181,7 @@ private
         }
     end
     files_to_delete = get_delete_files_list(delete_list)
-    delete_files(files_to_delete)
+    delete_files(files_to_delete) if files_to_delete.length > 0
   end
 
   def delete_files(files_to_delete)

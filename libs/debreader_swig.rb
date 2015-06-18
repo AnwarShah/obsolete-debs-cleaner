@@ -15,8 +15,10 @@ module DebReaderSwig
     def initialize(file_path)
       @file_path = file_path
       @fields = {}
-      read_control_file @file_path
-      parse_control_file
+      read_control_file(@file_path)
+      if not @control_file_contents.nil?
+        parse_control_file
+      end
     end
 
     # method to get hash like entries
@@ -49,21 +51,25 @@ module DebReaderSwig
 
 private
     def read_control_file(filename)
+      begin
+        Archive.read_open_filename(filename) do |archive|
+          while entry = archive.next_header
+            path = entry.pathname.sub(/^\//, '')
 
-      Archive.read_open_filename(filename) do |archive|
-        while entry = archive.next_header
-          path = entry.pathname.sub(/^\//, '')
-
-          if path.include? 'control.tar.gz'
-            control_tar_gz_data = archive.read_data
-            control_gz_reader = Archive.read_open_memory(control_tar_gz_data)
-            while control_entry = control_gz_reader.next_header
-              if (control_entry.pathname).include? 'control'
-                @control_file_contents = control_gz_reader.read_data
+            if path.include? 'control.tar.gz'
+              control_tar_gz_data = archive.read_data
+              control_gz_reader = Archive.read_open_memory(control_tar_gz_data)
+              while control_entry = control_gz_reader.next_header
+                if (control_entry.pathname).include? 'control'
+                  @control_file_contents = control_gz_reader.read_data
+                end
               end
             end
           end
         end
+      rescue Archive::Error => msg
+        puts "Error while processing deb file: #{filename} (#{msg})"
+        return
       end
     end
 
