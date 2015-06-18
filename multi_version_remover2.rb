@@ -80,10 +80,9 @@ end
 class MultiVersionRemover
   attr_reader :scan_dir, :to_delete_dir, :debs_info, :pkgs_info
 
-  def initialize(scan_dir = '', exclude_folder = 'to_delete')
+  def initialize(scan_dir = '.', exclude_folder = 'to_delete')
     @to_delete_dir = exclude_folder
-
-    @scan_dir = '.' if scan_dir.empty?
+    @scan_dir = scan_dir
 
     @debs_info = get_debs_info(@scan_dir, @to_delete_dir)
     @pkgs_info = get_pkgs_info(@debs_info)
@@ -93,6 +92,7 @@ class MultiVersionRemover
     # user_options = extract_user_options
     if multiversions_count > 0 # at least 1 package exisits with multi-version
       puts "#{multiversions_count} packages found with multiple versions"
+      puts ''
       process_multidebs
     else
       puts 'No package found with multiple versions'
@@ -103,7 +103,7 @@ private
 
   def process_multidebs
     selections = get_user_deletion_list(@pkgs_info)
-    delete_selected_versions(@pkgs_info, selections)
+    delete_selected_versions(@pkgs_info, selections) if selections.length > 0
   end
 
   def get_debs_info(scan_dir, exclude_dir)
@@ -191,6 +191,7 @@ private
 
     if has_consent?
       delete_count = 0
+      check_dest_dir
       files_to_delete.each do |file|
         FileUtils.mv(file, @to_delete_dir)
         puts "#{file} -> #{@to_delete_dir}"
@@ -201,6 +202,10 @@ private
       puts "Man! have some courage!"
     end
 
+  end
+
+  def check_dest_dir
+    Dir.mkdir(@to_delete_dir) unless File.exists?(@to_delete_dir)
   end
 
   def has_consent?
@@ -236,7 +241,7 @@ private
 end
 
 if $0 == __FILE__
-  MultiVersionRemover.new('', 'to_remove')
+  MultiVersionRemover.new()
 end
 
 
