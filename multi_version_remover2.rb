@@ -12,20 +12,22 @@ class UserChoice
     @valid_options = options
     @options_count = @valid_options.length
     @selections = []  # user selected options
-    @valid = false    # a flag for validity status
 
     parse_selections
   end
 
   def valid?
-    check_selection_validity
-    @valid
-  end
+    @selections.uniq! # remove duplicates
+    # check invalid range
+    @selections.each  do |x|
+      return false unless @valid_options.include?(x)
+    end
+    true # otherwise
+  end # method valid?
 
   def set_new_selection(selection_s)
     @selection_s = selection_s
-    # trigger parse selection
-    parse_selections
+    parse_selections # parse new selection
   end
 
   private
@@ -35,22 +37,6 @@ class UserChoice
     @selections = @selections.map { |e| e.to_i }
   end
 
-  def check_selection_validity
-    # Remove same selection multiple times
-    @selections.uniq!
-
-    # check invalid range
-    @selections.each  do |x|
-      #if any value is out of range
-      unless @valid_options.include?(x)
-        @valid = false
-        return
-      end
-    end
-
-    # if passed all filter
-    @valid = true
-  end
 end
 
 ###############################################################################
@@ -67,10 +53,7 @@ class DebPkgInfo
   end
 
   def <=>(obj)
-    ver1 = @version
-    ver2 = obj.version
-
-    compare_version(ver1, ver2)
+    compare_version(@version, obj.version)
   end
 
   def to_s
@@ -86,11 +69,12 @@ class MultiVersionRemover
     @to_delete_dir = exclude_folder
     @scan_dir = scan_dir
 
-    @debs_info = get_debs_info(@scan_dir, @to_delete_dir)
+    @debs_info = DebFilesScanner.new(@scan_dir, @to_delete_dir)
     @pkgs_info = get_pkgs_info(@debs_info)
     drop_singles!(@pkgs_info) # drop packages with only 1 version
-    multiversions_count = @pkgs_info.length
+    sort(@pkgs_info) # sort by package version
 
+    multiversions_count = @pkgs_info.length
     # user_options = extract_user_options
     if multiversions_count > 0 # at least 1 package exisits with multi-version
       puts "#{multiversions_count} packages found with multiple versions"
@@ -103,15 +87,19 @@ class MultiVersionRemover
 
 private
 
+  def sort(pkg_info)
+    pkg_info.collect do |mult|
+      # mult[0] is package name, mult[1] is array of versions
+      mult[1].sort!
+    end
+    pkg_info
+  end
+
   def process_multidebs
     selections = get_user_deletion_list(@pkgs_info)
     delete_selected_versions(@pkgs_info, selections)
   end
 
-  def get_debs_info(scan_dir, exclude_dir)
-    DebFilesScanner.new(scan_dir, exclude_dir)
-  end
-  
   def get_pkgs_info(debs_info)
     pkgs_info = Hash.new  { |h, key| h[key] = [] }
 
@@ -121,10 +109,6 @@ private
           [ DebPkgInfo.new(pkg['Version'], pkg['Architecture'], pkg.file_path) ]  )
     end
     pkgs_info
-  end
-
-  def extract_user_options
-
   end
 
   def drop_singles!(pkgs_info)
