@@ -11,6 +11,7 @@ require 'find'
 require 'debian'
 
 require_relative 'libs/debreader_swig'
+require_relative 'libs/apt_version'
 
 
 TO_FOLDER = 'to_delete'
@@ -207,6 +208,15 @@ def get_user_selection
   selected
 end
 
+def present_multiple_versions(info)
+  info[:versions].each_index do |index|
+    ver = AptPkg_Version.new(info[:versions][index])
+    ver_str = "E: %-3s V: %-10s R: %-10s" %
+        [ver.epoch, ver.upstream, ver.revision]
+    puts "[#{index}]: #{ver_str} size: #{info[:sizes][index]}"
+  end
+end
+
 def mark_for_deletion(info_hash, sorted = false )
 
   marked_files = []
@@ -229,15 +239,15 @@ END
   puts # empty line
 
   hint = 'ENTER to skip or Type index (separate with comma or space) to remove'
+  legend_str = 'E = Epoch, V = Major Version, R = Revision'
   info_hash.each do |package, info|
     versions_count = info[:versions].length
 
     if versions_count > 1 # if more than one version exists
       puts "#{package} {#{info[:arch]}}"
+      puts legend_str
 
-      info[:versions].each_index do |index|
-        puts "[#{index}]: #{info[:versions][index]} size: #{info[:sizes][index]}"
-      end
+      present_multiple_versions(info)
       puts  "\n#{hint}"
 
       # get input, split with comma and space and store individual. value

@@ -2,6 +2,7 @@
 
 require 'fileutils'
 require_relative 'libs/deb_files_scanner'
+require_relative 'libs/apt_version'
 
 class UserChoice
 
@@ -143,15 +144,21 @@ private
       no_of_vers = options_arr.length
       prompt_msg_select(pkg, no_of_vers)
 
-      val.each_index do |i|
-        print "#{i+1}: "
-        val[i].each { |it|
-          puts "#{it.version} #{it.arch}"
-        }
-      end
+      present_versions(val)
       all_selections.push get_selection_from_user(options_arr)
     }
     all_selections # Return the selections for all package
+  end
+
+  def present_versions(val)
+    val.each_index do |i|
+      print "#{i+1}: "
+      val[i].each { |it|
+        ver = AptPkg_Version.new(it.version)
+        puts "E: %-3s V: %-10s R: %-10s" %
+                 [ ver.epoch, ver.upstream, ver.revision ]
+      }
+    end
   end
 
 
