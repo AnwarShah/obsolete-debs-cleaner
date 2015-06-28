@@ -10,15 +10,14 @@ module DebReaderSwig
 
     # Class for reading control or metainformation
     # of a single debian package file
-    attr_reader :control_file_contents, :fields, :file_path
+    attr_reader :control_file_contents, :fields, :file_path, :file_size
 
     def initialize(file_path)
       @file_path = file_path
       @fields = {}
       read_control_file(@file_path)
-      if not @control_file_contents.nil?
-        parse_control_file
-      end
+      parse_control_file unless @control_file_contents.nil?
+      @file_size = get_file_size
     end
 
     # method to get hash like entries
@@ -50,6 +49,11 @@ module DebReaderSwig
     end
 
 private
+
+    def get_file_size
+      File.size(@file_path)
+    end
+
     def read_control_file(filename)
       begin
         Archive.read_open_filename(filename) do |archive|

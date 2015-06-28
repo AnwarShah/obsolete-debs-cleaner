@@ -15,7 +15,22 @@ module DebHelpers
     else
       return nil
     end
-end
+  end
+
+  def pretty_file_size(size_in_byte)
+    sizes = {
+        'B' => 1024,
+        'KB' => 1024 * 1024,
+        'MB' => 1024 * 1024 * 1024,
+        'GB' => 1024 * 1024 * 1024 * 1024,
+        'TB' => 1024 * 1024 * 1024 * 1024 * 1024
+    }
+    sizes.each_pair do |key, value|
+      if size_in_byte <= value
+        return "#{(size_in_byte / (value / 1024).round(2)).round(3) } #{key}"
+      end
+    end
+  end
 
   def extract_deb_info(filenames)
     info = [] # array to hold all control files' content

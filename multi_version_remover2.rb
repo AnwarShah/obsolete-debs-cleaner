@@ -3,6 +3,7 @@
 require 'fileutils'
 require_relative 'libs/deb_files_scanner'
 require_relative 'libs/apt_version'
+require_relative 'libs/deb_helpers'
 
 class UserChoice
 
@@ -45,12 +46,13 @@ class DebPkgInfo
   include Comparable
   include DebHelpers
 
-  attr_reader :version, :arch, :path
+  attr_reader :version, :arch, :path, :size
 
-  def initialize(version, arch, path)
+  def initialize(version, arch, path, size)
     @version = version
     @arch  = arch
     @path =  path
+    @size = size
   end
 
   def <=>(obj)
@@ -58,12 +60,14 @@ class DebPkgInfo
   end
 
   def to_s
-    "Ver: #{@version}, Arc: #{@arch}, Path: #{@path}"
+    "Ver: #{@version}, Arc: #{@arch}, Path: #{@path}, Size: #{@size}"
   end
 end
 ################################################################################
 
 class MultiVersionRemover
+  include DebHelpers
+
   attr_reader :scan_dir, :to_delete_dir, :debs_info, :pkgs_info
 
   def initialize(scan_dir = '.', exclude_folder = 'to_delete')
@@ -71,7 +75,7 @@ class MultiVersionRemover
     @scan_dir = scan_dir
 
     @debs_info = DebFilesScanner.new(@scan_dir, @to_delete_dir)
-    @pkgs_info = get_pkgs_info(@debs_info)
+    @pkgs_info = extract_pkg_info(@debs_info)
     drop_singles!(@pkgs_info) # drop packages with only 1 version
     sort(@pkgs_info) # sort by package version
 
@@ -101,13 +105,15 @@ private
     delete_selected_versions(@pkgs_info, selections)
   end
 
-  def get_pkgs_info(debs_info)
+  def extract_pkg_info(debs_info)
     pkgs_info = Hash.new  { |h, key| h[key] = [] }
 
     debs_info.each do |pkg|
       name = pkg['Package']
+      size = pkg.file_size
       pkgs_info[name].push(
-          [ DebPkgInfo.new(pkg['Version'], pkg['Architecture'], pkg.file_path) ]  )
+          [ DebPkgInfo.new(pkg['Version'], pkg['Architecture'],
+                           pkg.file_path, size ) ]  )
     end
     pkgs_info
   end
@@ -144,18 +150,20 @@ private
       no_of_vers = options_arr.length
       prompt_msg_select(pkg, no_of_vers)
 
-      present_versions(val)
+      present_version_info(val)
       all_selections.push get_selection_from_user(options_arr)
     }
-    all_selections # Return the selections for all package
+    all_selections
   end
 
-  def present_versions(val)
+
+  def present_version_info(val)
     val.each_index do |i|
       print "#{i+1}: "
       val[i].each { |it|
         ver = AptPkg_Version.new(it.version)
-        puts "E: %-3s V: %-10s R: %-10s" %
+        size = pretty_file_size it.size
+        puts "E: %-3s V: %-10s R: %-10s Size: #{size}" %
                  [ ver.epoch, ver.upstream, ver.revision ]
       }
     end
@@ -236,6 +244,3 @@ end
 if $0 == __FILE__
   MultiVersionRemover.new()
 end
-
-
-

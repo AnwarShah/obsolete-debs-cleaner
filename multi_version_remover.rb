@@ -107,7 +107,6 @@ def pretty_file_size(size_in_byte)
       return "#{(size_in_byte / (value / 1024).round(2)).round(3) } #{key}"
     end
   end
-
 end
 
 def get_deb_files_name
