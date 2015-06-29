@@ -25,6 +25,11 @@ module DebReaderSwig
       @fields.has_key?(field.to_s) ? @fields[field.to_s] : nil
     end
 
+    # method to check validity of deb file
+    def valid?
+      @fields.size > 0
+    end
+
     # get all entries in an array
     def fields
       @fields.keys

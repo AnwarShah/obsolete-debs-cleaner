@@ -1,4 +1,4 @@
-#!/usr/bin/ruby 
+#!/usr/bin/env ruby
 
 # This program attempts to remove old, obsolete versions for local debian 
 # packages by prompting user for the deletion list. Another variation 
@@ -119,14 +119,17 @@ end
 
 # Get the information from package files
 def read_package_info(filenames)
-  filenames.collect do |filename|
+  filenames.collect! do |filename|
     path = File.realpath(filename)
 
     pkg = DebReaderSwig::Package.new(path)
 
-    # return a 4 element array by extracting info from temp hash
+    next if not pkg.valid?
+
     [ path, pkg['Package'], pkg['Version'], pkg['Architecture'] ]
   end
+  # filenames.drop_while { |f| not f.valid? }
+  filenames.compact!
 end
 
 def read_deb_files

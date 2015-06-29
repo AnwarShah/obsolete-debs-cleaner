@@ -36,7 +36,7 @@ module DebHelpers
     info = [] # array to hold all control files' content
     filenames.collect do |file|
       pkg = DebReaderSwig::Package.new(file)
-      info.push pkg
+      info.push pkg if  pkg.valid?
     end
     info
   end
