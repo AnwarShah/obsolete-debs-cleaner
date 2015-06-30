@@ -70,12 +70,18 @@ class MultiVersionRemover
 
   attr_reader :scan_dir, :to_delete_dir, :debs_info, :pkgs_info
 
+  @@control_chars = {
+    :next => 'n',
+    :prev => 'p',
+    :stop => 's'
+  }
+
   def initialize(scan_dir = '.', exclude_folder = 'to_delete')
     @to_delete_dir = exclude_folder
     @scan_dir = scan_dir
 
-    @debs_info = DebFilesScanner.new(@scan_dir, @to_delete_dir)
-    @pkgs_info = extract_pkg_info(@debs_info)
+    @debs_info = scan_for_debs(@scan_dir, @to_delete_dir)
+    @pkgs_info = build_pkg_index(@debs_info)
     drop_singles!(@pkgs_info) # drop packages with only 1 version
     sort(@pkgs_info) # sort by package version
 
@@ -92,6 +98,11 @@ class MultiVersionRemover
 
 private
 
+  def scan_for_debs(scan_dir, exclude_dir)
+    filenames = get_file_list(scan_dir, exclude_dir)
+    extract_deb_info(filenames)
+  end
+
   def sort(pkg_info)
     pkg_info.collect do |mult|
       # mult[0] is package name, mult[1] is array of versions
@@ -105,7 +116,7 @@ private
     delete_selected_versions(@pkgs_info, selections)
   end
 
-  def extract_pkg_info(debs_info)
+  def build_pkg_index(debs_info)
     pkgs_info = Hash.new  { |h, key| h[key] = [] }
 
     debs_info.each do |pkg|
@@ -125,39 +136,79 @@ private
     }
   end
 
+  def has_control_char?(str)
+    @@control_chars.values.any? { |x| str[x] }
+  end
+
   def get_selection_from_user(valid_opt_arr)
     # Get selection for deletion for a single package
     prompt = "\nType the index to select versions to remove (Enter to skip)" +
-     "\nUse any symobls to seperate multiple index" +
-     "\nExample: 2, 3 or 2 3"
+     "\nUse any symobls to seperate multiple index, like 2, 3 or 2 3" +
+     "\nPrevious(P), Stop(S)"
 
     puts prompt
-    selection_str = gets.chomp
-    user_sels = UserChoice.new(selection_str, valid_opt_arr)
+    user_response = gets.chomp
+    # if user typed control chars
+    if has_control_char?(user_response)
+      return process_control(user_response)
+    end
+
+    user_sels = UserChoice.new(user_response, valid_opt_arr)
     until user_sels.valid?
       puts 'Invalid selection. Please try again'
-      selection_str = gets.chomp
-      user_sels.set_new_selection(selection_str)
+      user_response = gets.chomp
+      user_sels.set_new_selection(user_response)
     end
     user_sels.selections  #return the selection array
+  end
+
+  def process_control(user_response)
+    if user_response.index @@control_chars[:next]
+      return :next
+    elsif user_response.index @@control_chars[:prev]
+      return :prev
+    elsif user_response.index @@control_chars[:stop]
+      return :stop
+    end
   end
 
   def get_user_deletion_list(pkgs_info)
     # Get use selections for every packages
     all_selections = []
-    pkgs_info.each { |pkg, val |
+
+    pkgs_info = pkgs_info.to_a # convert to array for easier
+
+    i = 0
+    while i < pkgs_info.length
+
+      pkg = pkgs_info[i][0]
+      val = pkgs_info[i][1]
+
       options_arr = (1..val.length).to_a
       no_of_vers = options_arr.length
-      prompt_msg_select(pkg, no_of_vers)
 
-      present_version_info(val)
-      all_selections.push get_selection_from_user(options_arr)
-    }
+      puts "#{no_of_vers} versions found for package \"#{pkg}\": "
+
+      show_versions(val)
+      r = get_selection_from_user(options_arr)
+      if r == :next
+        puts 'go next'
+      elsif r == :prev
+        i= i <=0 ? 0 : i-1
+        next
+      elsif r == :stop
+        exit
+      else
+        all_selections[i] = r
+      end
+      i = i + 1
+    end
+
     all_selections
   end
 
 
-  def present_version_info(val)
+  def show_versions(val)
     val.each_index do |i|
       print "#{i+1}: "
       val[i].each { |it|
@@ -236,9 +287,6 @@ private
     files_to_delete
   end
 
-  def prompt_msg_select(pkg_name, vers_count)
-    puts "#{vers_count} versions found for package \"#{pkg_name}\": "
-  end
 end
 
 if $0 == __FILE__
