@@ -57,7 +57,7 @@ private ############ Private methods
       if package_info[name].nil? then
         package_info[name] = PackageDebs.new(name, deb)
       else
-        package_info[name].add(deb)
+        package_info[name] << (deb)
       end
     end
     package_info
@@ -78,18 +78,3 @@ private ############ Private methods
   end
 
 end
-
-
-################ Test ################
-
-ignore = %w(a b)
-collector = PkgInfoCollector.new('debs', ignore)
-# puts collector.file_list
-# puts collector.all_debs
-collection = collector.get_collection
-
-collection.each do |pkgname, colc|
-  puts pkgname
-  puts colc.get_all_versions_string
-end
-

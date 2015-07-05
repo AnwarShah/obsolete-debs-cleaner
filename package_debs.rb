@@ -1,10 +1,17 @@
+require 'forwardable'
 require_relative 'deb_file'
 
 class NameMismatchError < StandardError; end;
 
 class PackageDebs
+  include Enumerable
+  extend Forwardable
+
   # Collection of Debs for a single package
   attr_reader :package_name, :architecture
+
+  def_delegators :@debs, :each, :[], :first, :last
+  def_delegator :@debs, :[], :get
 
   # name is the package name
   # deb is an object of DebFile class
@@ -24,10 +31,6 @@ class PackageDebs
 
   def remove(deb)
     @debs.delete(deb)
-  end
-
-  def get(index)
-    @debs[index]
   end
 
   def get_deb_path(index)
@@ -80,4 +83,7 @@ class PackageDebs
     end
   end
 
+  alias_method :length,  :size
+  alias_method :delete, :remove
+  alias_method :<<, :add
 end
