@@ -18,7 +18,7 @@ class PkgInfoCollector
       @deb_objects << DebFile.new(deb) # create object with info 
     end
 
-    @collection = build_package_collection
+    @collection = build_package_collection #hash
   end
 
   ################# Interface methods ###########
@@ -43,11 +43,15 @@ class PkgInfoCollector
     @collection
   end
 
+  def get_collection_with_multiples
+    @collection.select { |pkg, val| val.length > 1 }
+  end
+
   def to_s
     "Scan: #{@scan_dir}, Ignore: #{@ignore_dirs}"
   end
 
-private ############ Private methods
+private ############ Private methods #################
 
   def build_package_collection
     package_info = {}
