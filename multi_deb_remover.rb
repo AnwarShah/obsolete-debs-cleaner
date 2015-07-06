@@ -1,4 +1,5 @@
 require_relative 'pkg_info_collector'
+require_relative 'user_response_parser'
 
   if $0 == __FILE__
   exclude_dirs = ['to_delete']
@@ -11,6 +12,13 @@ require_relative 'pkg_info_collector'
       puts "#{index}: #{deb}"
     end
     puts 'Select index to remove'
-    gets.chomp 
+    res = UserResponseParser.new(gets.chomp)
+    if res.response_type == :command
+      #Process command
+      puts "Process command #{res.get_response}"
+    else
+      #Save selection
+      puts 'Save selection'
+    end
   end
 end
