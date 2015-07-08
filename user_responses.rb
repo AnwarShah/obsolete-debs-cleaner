@@ -7,6 +7,8 @@ class UserResponses
   STOP = :stop
   FINISH = :finish
 
+  attr_reader :selections
+
   def initialize
     @selections = [] # array to save selections
   end
