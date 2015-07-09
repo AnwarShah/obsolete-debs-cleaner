@@ -1,3 +1,5 @@
+require 'fileutils'
+
 require_relative 'pkg_info_collector'
 require_relative 'user_response_parser'
 require_relative 'user_responses'
@@ -12,9 +14,9 @@ def get_selections(collection)
     pkg = collection_arr[index][0]
     debs = collection_arr[index][1]
 
-    puts "#{debs.length} version(s) found for #{pkg}:"
+    puts "#{debs.length} version(s) found for #{pkg} #{debs.architecture}:"
     debs.sort.each_with_index do |deb, index|
-      puts "#{index}: #{deb}"
+      puts "#{index}: #{deb.version} #{deb.file_size}"
     end
 
     puts 'Select index to remove, P(Previous), S(Stop), F(Finish)'
@@ -60,6 +62,20 @@ def get_selected_files(collection, selections)
   files
 end
 
+def remove_files(files)
+  puts 'These files are selected for removal. Are you sure? (Y/N)'
+  files.each { |f| puts f }
+  answer = gets.chomp.downcase
+  if answer == 'y'
+    dest_dir = 'to_delete'
+    FileUtils.mkdir(dest_dir) unless Dir.exist?(dest_dir)
+    files.each { |file|
+      FileUtils.move(file, dest_dir)
+      puts "#{File.basename file} -> #{File.realpath dest_dir}"
+    }
+  end
+end
+
 if $0 == __FILE__
   exclude_dirs = ['to_delete']
   collector = PkgInfoCollector.new('debs', exclude_dirs)
@@ -69,5 +85,5 @@ if $0 == __FILE__
   selections = get_selections(collection) # while
   files = get_selected_files(collection, selections)
 
-  files.each { |file| puts file }
+  remove_files(files) if files.length > 0
 end
