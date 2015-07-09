@@ -80,8 +80,8 @@ class MultiVersionRemover
     @to_delete_dir = exclude_folder
     @scan_dir = scan_dir
 
-    @debs_info = DebFilesScanner.new(@scan_dir, @to_delete_dir)
-    @pkgs_info = extract_pkg_info(@debs_info)
+    @debs_info = scan_for_debs(@scan_dir, @to_delete_dir)
+    @pkgs_info = build_pkg_index(@debs_info)
     drop_singles!(@pkgs_info) # drop packages with only 1 version
     sort(@pkgs_info) # sort by package version
 
@@ -98,6 +98,11 @@ class MultiVersionRemover
 
 private
 
+  def scan_for_debs(scan_dir, exclude_dir)
+    filenames = get_file_list(scan_dir, exclude_dir)
+    extract_deb_info(filenames)
+  end
+
   def sort(pkg_info)
     pkg_info.collect do |mult|
       # mult[0] is package name, mult[1] is array of versions
@@ -111,7 +116,7 @@ private
     delete_selected_versions(@pkgs_info, selections)
   end
 
-  def extract_pkg_info(debs_info)
+  def build_pkg_index(debs_info)
     pkgs_info = Hash.new  { |h, key| h[key] = [] }
 
     debs_info.each do |pkg|
@@ -182,31 +187,28 @@ private
       options_arr = (1..val.length).to_a
       no_of_vers = options_arr.length
 
-      prompt_msg_select(pkg, no_of_vers)
+      puts "#{no_of_vers} versions found for package \"#{pkg}\": "
 
-      present_version_info(val)
+      show_versions(val)
       r = get_selection_from_user(options_arr)
       if r == :next
         puts 'go next'
       elsif r == :prev
-        i=i-1
-        i = 0 if i < 0 # should not go before first item!
+        i= i <=0 ? 0 : i-1
         next
       elsif r == :stop
         exit
-      elsif r.class == Array
-        puts r
-        all_selections.push r
+      else
+        all_selections[i] = r
       end
-
       i = i + 1
     end
-    p all_selections
+
     all_selections
   end
 
 
-  def present_version_info(val)
+  def show_versions(val)
     val.each_index do |i|
       print "#{i+1}: "
       val[i].each { |it|
@@ -285,9 +287,6 @@ private
     files_to_delete
   end
 
-  def prompt_msg_select(pkg_name, vers_count)
-    puts "#{vers_count} versions found for package \"#{pkg_name}\": "
-  end
 end
 
 if $0 == __FILE__
