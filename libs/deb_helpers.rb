@@ -2,6 +2,64 @@ require 'debian'
 
 module DebHelpers
 
+  class UserChoice
+
+    attr_reader :selections
+
+    def initialize(selection_str, options)
+      @selection_s = selection_str
+      @valid_options = options
+      @options_count = @valid_options.length
+      @selections = []  # user selected options
+
+      parse_selections
+    end
+
+    def valid?
+      @selections.uniq! # remove duplicates
+      # check invalid range
+      @selections.each  do |x|
+        return false unless @valid_options.include?(x)
+      end
+      true # otherwise
+    end # method valid?
+
+    def set_new_selection(selection_s)
+      @selection_s = selection_s
+      parse_selections # parse new selection
+    end
+
+    private
+    def parse_selections
+      # selection string can contain only digits seperated by any non-digits
+      @selections = @selection_s.chomp.split(/\D+/).keep_if { |v| v.length > 0 }
+      @selections = @selections.map { |e| e.to_i }
+    end
+
+  end
+
+  class DebPkgInfo
+    include Comparable
+    include DebHelpers
+
+    attr_reader :version, :arch, :path, :size
+
+    def initialize(version, arch, path, size)
+      @version = version
+      @arch  = arch
+      @path =  path
+      @size = size
+    end
+
+    def <=>(obj)
+      compare_version(@version, obj.version)
+    end
+
+    def to_s
+      "Ver: #{@version}, Arc: #{@arch}, Path: #{@path}, Size: #{@size}"
+    end
+  end # class DebPkgInfo
+
   def compare_version(ver1, ver2)
     if Debian::Version.cmp_version(ver1, '>', ver2)
       return 1

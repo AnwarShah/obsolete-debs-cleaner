@@ -5,66 +5,6 @@ require_relative 'libs/deb_files_scanner'
 require_relative 'libs/apt_version'
 require_relative 'libs/deb_helpers'
 
-class UserChoice
-
-  attr_reader :selections
-
-  def initialize(selection_str, options)
-    @selection_s = selection_str
-    @valid_options = options
-    @options_count = @valid_options.length
-    @selections = []  # user selected options
-
-    parse_selections
-  end
-
-  def valid?
-    @selections.uniq! # remove duplicates
-    # check invalid range
-    @selections.each  do |x|
-      return false unless @valid_options.include?(x)
-    end
-    true # otherwise
-  end # method valid?
-
-  def set_new_selection(selection_s)
-    @selection_s = selection_s
-    parse_selections # parse new selection
-  end
-
-  private
-  def parse_selections
-    # selection string can contain only digits seperated by any non-digits
-    @selections = @selection_s.chomp.split(/\D+/).keep_if { |v| v.length > 0 }
-    @selections = @selections.map { |e| e.to_i }
-  end
-
-end
-
-###############################################################################
-class DebPkgInfo
-  include Comparable
-  include DebHelpers
-
-  attr_reader :version, :arch, :path, :size
-
-  def initialize(version, arch, path, size)
-    @version = version
-    @arch  = arch
-    @path =  path
-    @size = size
-  end
-
-  def <=>(obj)
-    compare_version(@version, obj.version)
-  end
-
-  def to_s
-    "Ver: #{@version}, Arc: #{@arch}, Path: #{@path}, Size: #{@size}"
-  end
-end
-################################################################################
-
 class MultiVersionRemover
   include DebHelpers
 
@@ -113,7 +53,8 @@ private
 
   def process_multidebs
     selections = get_user_deletion_list(@pkgs_info)
-    delete_selected_versions(@pkgs_info, selections)
+    files_to_delete = get_files_todelete(@pkgs_info, selections)
+    delete_files(files_to_delete) if files_to_delete.length > 0
   end
 
   def build_pkg_index(debs_info)
@@ -221,7 +162,7 @@ private
   end
 
 
-  def delete_selected_versions(info_hash, selections_arr)
+  def get_files_todelete(info_hash, selections_arr)
     delete_list = []
 
     zip_arr = info_hash.zip(selections_arr)
@@ -231,7 +172,6 @@ private
         }
     end
     files_to_delete = get_delete_files_list(delete_list)
-    delete_files(files_to_delete) if files_to_delete.length > 0
   end
 
   def delete_files(files_to_delete)
@@ -243,7 +183,7 @@ private
 
     if has_consent?
       delete_count = 0
-      check_dest_dir
+      Dir.mkdir(@to_delete_dir) unless File.exists?(@to_delete_dir)
       files_to_delete.each do |file|
         FileUtils.mv(file, @to_delete_dir)
         puts "#{file} -> #{@to_delete_dir}"
@@ -256,9 +196,6 @@ private
 
   end
 
-  def check_dest_dir
-    Dir.mkdir(@to_delete_dir) unless File.exists?(@to_delete_dir)
-  end
 
   def has_consent?
     puts "Do you really want to delete these files? (Y/N)"
@@ -292,3 +229,4 @@ end
 if $0 == __FILE__
   MultiVersionRemover.new()
 end
+
