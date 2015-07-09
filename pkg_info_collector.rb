@@ -25,7 +25,7 @@ class PkgInfoCollector
 
   def show_all
     @collection.each do |name, debs|
-      version_s = debs.size > 1 ? 'versions' : 'version'
+      version_s = debs.total_debs > 1 ? 'versions' : 'version'
       puts "#{name} has #{debs.size} #{version_s}"
       debs.show_all_versions
     end

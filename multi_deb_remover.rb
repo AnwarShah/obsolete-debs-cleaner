@@ -1,14 +1,16 @@
+#!/usr/bin/env ruby
+
 require 'fileutils'
 
 require_relative 'pkg_info_collector'
 require_relative 'user_response_parser'
-require_relative 'user_responses'
+
 
 def get_selections(collection)
 
   collection_arr = collection.to_a # convert to arry for easy iteration
+  selections = [] # array to save selections
 
-  res_processor = UserResponses.new()
   index = 0
   while index < collection_arr.length
     pkg = collection_arr[index][0]
@@ -16,30 +18,34 @@ def get_selections(collection)
 
     puts "#{debs.length} version(s) found for #{pkg} #{debs.architecture}:"
     debs.sort.each_with_index do |deb, index|
-      puts "#{index}: #{deb.version} #{deb.file_size}"
+      puts "#{index}: %-30s %10s" % [deb.version, deb.file_size]
     end
 
     puts 'Select index to remove, P(Previous), S(Stop), F(Finish)'
     res = UserResponseParser.new(gets.chomp)
-    res_processor.add_response(res)
 
-    if res_processor.get_status == :invalid
+    if res.response_type == :invalid
       puts 'Invalid selection. Try again'
       redo
-    elsif res_processor.get_status == :previous
-      index = (index-1) < 0 ? 0 : index-1
-      next
-    elsif res_processor.get_status == :stop
-      exit # stopping here.
-    elsif res_processor.get_status == :finish
-      break # to get selections
-    else
-      index = index + 1
-    end # if else
-
+    elsif res.response_type == :command
+      case res.get_command
+        when :previous
+          index = (index-1) < 0 ? 0 : index-1
+          next
+        when :finish
+          break
+        when :stop
+          exit
+        else
+          index += 1
+      end
+    elsif res.response_type == :selection
+      selections[index] = res.get_response
+      index += 1
+    end # end
   end # while
 
-  res_processor.selections
+  selections
 
 end
 

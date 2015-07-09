@@ -14,6 +14,7 @@ class UserResponseParser
   def response_type
     return :command if is_command?
     return :selection if is_selection?
+    :invalid #otherwise invalid response
   end
 
   def get_response
@@ -24,10 +25,10 @@ class UserResponseParser
   def get_command
     user_response = @response_str
 
-    return NEXT if user_response.index NEXT
-    return PREVIOUS  if user_response.index PREVIOUS
-    return STOP if  user_response.index STOP
-    return FINISH if  user_response.index FINISH
+    return :next if user_response.index NEXT
+    return :previous  if user_response.index PREVIOUS
+    return :stop if  user_response.index STOP
+    return :finish if  user_response.index FINISH
   end
 
   def get_selection
