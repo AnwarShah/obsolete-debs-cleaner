@@ -42,6 +42,10 @@ class DebFile
     DebHelpers.compare_version(version1, version2)
   end
 
+  def raw_file_size
+    File.size @path
+  end
+
   def to_s
     "#{@package_name} #{@version} #{@architecture}"
   end

@@ -69,8 +69,8 @@ def get_selected_files(collection, selections)
 end
 
 def remove_files(files)
-  puts 'These files are selected for removal. Are you sure? (Y/N)'
   files.each { |f| puts f }
+  puts 'These files are selected for removal. Are you sure? (Y/N)'
   answer = gets.chomp.downcase
   if answer == 'y'
     dest_dir = 'to_delete'
@@ -82,14 +82,30 @@ def remove_files(files)
   end
 end
 
+def sorted_by_size(collection, sizes)
+  # this method sorts the collection by using another
+  # size hash as guide
+  new_collection = { }
+  sizes_arr = sizes.to_a
+  sizes_arr.sort_by! { |pkg, max_deb_size| max_deb_size }
+  sizes_arr.reverse! # get reverse sort
+
+  sizes_arr.each do |pkg, max_size|
+    new_collection[pkg] = collection[pkg] unless collection[pkg].nil?
+  end
+
+  new_collection
+end
+
 if $0 == __FILE__
   exclude_dirs = ['to_delete']
   collector = PkgInfoCollector.new('debs', exclude_dirs)
   collection = collector.get_collection_with_multiples
+  sizes = collector.get_size_info
+  sorted_collection = sorted_by_size(collection, sizes)
 
-
-  selections = get_selections(collection) # while
-  files = get_selected_files(collection, selections)
+  selections = get_selections(sorted_collection) # while
+  files = get_selected_files(sorted_collection, selections)
 
   remove_files(files) if files.length > 0
 end

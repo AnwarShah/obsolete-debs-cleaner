@@ -19,6 +19,7 @@ class PkgInfoCollector
     end
 
     @collection = build_package_collection #hash
+    @size_info = calculate_size_info(@collection)
   end
 
   ################# Interface methods ###########
@@ -43,6 +44,10 @@ class PkgInfoCollector
     @collection
   end
 
+  def get_size_info
+    @size_info
+  end
+
   def get_collection_with_multiples
     @collection.select { |pkg, val| val.length > 1 }
   end
@@ -65,6 +70,14 @@ private ############ Private methods #################
       end
     end
     package_info
+  end
+
+  def calculate_size_info(collections)
+    sizes = {}
+    collections.each do |pkg, pkg_debs|
+      sizes[pkg] = pkg_debs.get_max_deb_size
+    end
+    sizes
   end
 
   def get_deb_files(debs_dir, ignore_dirs)

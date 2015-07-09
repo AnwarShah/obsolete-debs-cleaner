@@ -37,7 +37,14 @@ class PackageDebs
     @debs[index].path
   end
 
-  def size
+  def get_max_deb_size
+    size = -1
+    @debs.each { |d|
+      size = d.raw_file_size if size < d.raw_file_size }
+    size
+  end
+
+  def total_debs
     @debs.length
   end
 
@@ -83,7 +90,7 @@ class PackageDebs
     end
   end
 
-  alias_method :length,  :size
+  alias_method :length, :total_debs
   alias_method :delete, :remove
   alias_method :<<, :add
 end
