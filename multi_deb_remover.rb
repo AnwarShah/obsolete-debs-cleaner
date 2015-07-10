@@ -99,7 +99,7 @@ end
 
 if $0 == __FILE__
   exclude_dirs = ['to_delete']
-  collector = PkgInfoCollector.new('debs', exclude_dirs)
+  collector = PkgInfoCollector.new('.', exclude_dirs)
   collection = collector.get_collection_with_multiples
   sizes = collector.get_size_info
   sorted_collection = sorted_by_size(collection, sizes)

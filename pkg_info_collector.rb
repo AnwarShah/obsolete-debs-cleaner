@@ -63,6 +63,7 @@ private ############ Private methods #################
 
     @deb_objects.each do |deb|
       name = deb.package_name
+      next if name.nil? # handle invalid deb with nil name
       if package_info[name].nil? then
         package_info[name] = PackageDebs.new(name, deb)
       else
