@@ -2,8 +2,8 @@
 
 require 'fileutils'
 
-require_relative 'pkg_info_collector'
-require_relative 'user_response_parser'
+require_relative 'libs/pkg_info_collector'
+require_relative 'libs/user_response_parser'
 
 
 def get_selections(collection)
