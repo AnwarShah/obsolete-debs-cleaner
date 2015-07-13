@@ -15,14 +15,14 @@ def get_selections(collection)
   while index < collection_arr.length
     pkg = collection_arr[index][0]
     debs = collection_arr[index][1]
-
-    puts "#{debs.length} version(s) found for #{pkg} #{debs.architecture}:"
+    total_debs = debs.length
+    puts "#{total_debs} version(s) found for #{pkg} #{debs.architecture}:"
     debs.sort.each_with_index do |deb, index|
       puts "#{index}: %-30s %10s" % [deb.version, deb.file_size]
     end
 
     puts 'Select index to remove, P(Previous), S(Stop), F(Finish)'
-    res = UserResponseParser.new(gets.chomp)
+    res = UserResponseParser.new(gets.chomp, (0...total_debs).to_a)
 
     if res.response_type == :invalid
       puts 'Invalid selection. Try again'
@@ -40,7 +40,11 @@ def get_selections(collection)
           index += 1
       end
     elsif res.response_type == :selection
-      selections[index] = res.get_response
+      if res.get_selection == :invalid
+        puts 'Invalid selection. Try again!'
+        redo
+      end
+      selections[index] = res.get_selection
       index += 1
     end # end
   end # while

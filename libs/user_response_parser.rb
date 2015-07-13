@@ -5,8 +5,9 @@ class UserResponseParser
   STOP = 's'
   FINISH = 'f'
 
-  def initialize(response_str)
+  def initialize(response_str, valid_selections_arr)
     @response_str = response_str
+    @valid_selections = valid_selections_arr
 
     @commands = [NEXT, PREVIOUS, STOP, FINISH]
   end
@@ -15,11 +16,6 @@ class UserResponseParser
     return :command if is_command?
     return :selection if is_selection?
     :invalid #otherwise invalid response
-  end
-
-  def get_response
-    return get_command if response_type == :command
-    return get_selection if response_type == :selection
   end
 
   def get_command
@@ -36,10 +32,21 @@ class UserResponseParser
 
     sels = @response_str
 
-    sels = sels.chomp.split(/\D+/)
-    sels = sels.keep_if { |v| v.length > 0 }
+    sels = sels.chomp.split(/\D+/).keep_if { |v| v.length > 0 }
 
-    sels.map { |e| e.to_i }
+    sels.map! { |e| e.to_i }
+
+    return :invalid unless valid_selections?(sels)
+    sels
+  end
+
+  def valid_selections?(user_selections)
+    user_selections.uniq! # remove duplicates
+    # check invalid range
+    user_selections.each  do |x|
+      return false unless @valid_selections.include?(x)
+    end
+    true # otherwise
   end
 
   def is_command?
@@ -65,10 +72,7 @@ class UserResponseParser
     true
   end
 
-  def is_valid?
-    return false unless is_command? || is_selection?
-    true
-  end
+  private :valid_selections?, :is_selection?
 end
 
 # ################ test
