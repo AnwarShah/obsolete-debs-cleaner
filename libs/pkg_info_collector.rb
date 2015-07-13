@@ -1,3 +1,5 @@
+require 'ruby-progressbar'
+
 require_relative 'deb_file'
 require_relative 'package_debs'
 
@@ -11,11 +13,19 @@ class PkgInfoCollector
   end
 
   def collect_info
+    @progress_bar = ProgressBar.create( :format => 'Getting deb file list: %B',
+                                        :starting_at => 20,
+                                        :total => nil,
+                                        :unknown_progress_animation_steps => ['.'])
+    @progress_bar.increment
     @deb_files = get_deb_files(@scan_dir, @ignore_dirs)
-
+    puts 'Extracting info from deb files ... '
+    @progress_bar = ProgressBar.create( :format => "%a %e %P% Scanned: %c deb files from %C",
+                                        :total => @deb_files.length )
     @deb_objects = []
     @deb_files.each do |deb|
-      @deb_objects << DebFile.new(deb) # create object with info 
+      @deb_objects << DebFile.new(deb) # create object with info
+      @progress_bar.increment
     end
 
     @collection = build_package_collection #hash
