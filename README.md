@@ -7,8 +7,8 @@ You need ruby 1.9.3 or greater to run this script. In Ubuntu, install ruby with
 
 You also need these packages in Ubuntu or similar in other distributions. `libapt-pkg-dev`, `swig2.0`, `libmagic-dev` Install these with 
 
-    sudo apt-get install libapt-pkg-dev swig2.0 libmagic-dev
-
+    sudo apt-get install libapt-pkg-dev swig2.0 libmagic-dev libarchive-dev ruby-dev
+    
 You Also need these gems in order to use the script `ruby-debian`, `libarchive-ruby-swig`. Install them with
 
     gem install ruby-debian libarchive-ruby-swig
